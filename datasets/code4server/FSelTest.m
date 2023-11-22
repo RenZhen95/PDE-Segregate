@@ -9,7 +9,7 @@ Para4IRelief.distance = 'euclidean';
 Para4IRelief.kernel = 'exp';
 Para4IRelief.Outlier =0;
 Para4IRelief.sigma= 0.5;
-Para4Relief.KNNpara = 9;% # of the nearest neighbors in KNN
+Para4Relief.KNNpara = 9;% number of the nearest neighbors in KNN
 Para4IRelief.Prob= 'yes';
 Para4IRelief.NN = [5:2:20];
 Sigma4KernelALH = linspace(0.1,2,5);
@@ -19,29 +19,28 @@ Lambda = [0.001 0.1 1];;
 KK = [5:30];
 tmCV = zeros(length(Para4IRelief.NN ),length(KK),4);
 avg = 0.7;
-for i =1: length(Para4IRelief.NN )
-         for j =1:length(KK)
-        K = min([KK(j),size(X,2)]);;
-        [~,id] = sort(-Weight_LM(:,i)); id =id(1:K);
-	
-	% CV = ClassifiersTest(X(:,id),Y,method);
-	kClusters = [5:2:15];
-	cp = cvpartition(Y,'k',10);
-	CV.KNN = KNN(X(:,id), Y, kClusters, cp, method);
 
-        tp_avg= mean(cell2mat(struct2cell(CV)));
-        if tp_avg>avg,
-            avg = tp_avg;
-            CV4LH = CV;
-            bestID = id;
-            ideal_K = K;
-        end
-         end
+for i =1:length(Para4IRelief.NN)
+  for j =1:length(KK)
+    K = min([KK(j),size(X,2)]);
+    [~,id] = sort(-Weight_LM(:,i)); id =id(1:K);
+
+    % CV = ClassifiersTest(X(:,id),Y,method);
+    kClusters = [5:2:15];
+
+    cp = cvpartition(Y,'k',10);
+    CV.KNN = KNN(X(:,id), Y, kClusters, cp, method);
+    tp_avg= mean(cell2mat(struct2cell(CV)));
+    if tp_avg>avg,
+      avg = tp_avg;
+      CV4LH = CV;
+      bestID = id;
+      ideal_K = K;
+    end
+  end
 end
 
 % find the best parameter
-
-
 
 %%%% Standard IRELIEF
 K = ideal_K;

@@ -16,9 +16,9 @@ switch method
             accuracy (K_idx) = mean(acc);
         end
     case 'loo'
-        ind = 1:ns;
+      ind = 1:ns;
         for K_idx = 1:length(K)
-            for  fi = 1:ns
+          for fi = 1: ns
                 train_id = setdiff(ind,i);;
                 test_id = fi;
                 train_sample = X1(train_id,:);
@@ -27,10 +27,11 @@ switch method
                 test_sample = X1(test_id,:);
                 pred = knnclassify(test_sample, train_sample, train_label,K(K_idx));
                 tp(fi)  = pred==test_label;
-            end
-            accuracy (K_idx) = sum(tp)/ns;
+          end
+          accuracy (K_idx) = sum(tp)/ns;
         end
 end
 
 [best_accuracy,idx4k] = max(accuracy(:));
-K_best(1) = K(idx4k)
+disp("Best K_best: " + K(idx4k))
+K_best(1) = K(idx4k);

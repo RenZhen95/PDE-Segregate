@@ -6,9 +6,11 @@ Something more in-depth:
 https://seehuhn.github.io/MATH5714M/X01-KDE.html#kernel-density-estimation
 
 Feature Selection
-A new improved filter-based feature selection model for high-dimensional data
+1. A new improved filter-based feature selection model for high-dimensional data
 https://link.springer.com/article/10.1007/s11227-019-02975-7
 (mainly for the microarray datasets)
+2. Feature weight estimation for gene selection: a local hyperlinear learning approach
+https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-15-70#Sec2
 
 Treating the trimming threshold as a part of the hyperparameter tuning
 Krstajic, 2014
@@ -19,7 +21,8 @@ kNN
 Naive Bayes
 LDA
 
-Data preprocessing:
+TODO:
+1. Data preprocessing:
  - Standardize X element such that columns of X are centered to have mean 0 and scaled to have standard
    deviation 1 (MATLAB: zscore(X))
  - y labels are (somehow) updated according to the following scheme:
@@ -34,23 +37,24 @@ Data preprocessing:
        end
    --------------------------------
  - Genes whose p-values<0.05 are also further removed
+
+2. Cai selected for top features ranging from 5-30, increments of 1
+3. LOOCV (repeated ten times)
+   - provides an unbiased estimate of the generalization error
+   - 5-fold CV on training data for hyperparameter tuning
    
 Filter methods:
 RELIEF algorithm
  - considered to be one of the most successful owing to its simplicity and effectiveness (Cai, 2014)
 RELIEF-F algorithm
  - tutorial: https://medium.com/@yashdagli98/feature-selection-using-relief-algorithms-with-python-example-3c2006e18f83
-
-LOOCV (repeated ten times)
- - provides an unbiased estimate of the generalization error
-
-5-fold CV on training data
- - hyperparameter tuning
-
-Cai selected for top features ranging from 5-30
+MultiSURF
+ - checkout:
+ 1. https://github.com/EpistasisLab/scikit-rebate
+ 2. https://epistasislab.github.io/scikit-rebate/using/#multisurf_1
 
 Filter methods select features according to discriminant criteria based on the characteristics of the
-data, independent of any classification algorithms (Cai, 2024).
+data, independent of any classification algorithms (Cai, 2014).
 
 Discriminant criteria commonly used:
  - Entropy measurements

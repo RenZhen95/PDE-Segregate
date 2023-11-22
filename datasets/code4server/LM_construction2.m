@@ -18,7 +18,8 @@ Aeq = ones(1,size(H,1));rhAeq =1;
 %%%%%%%%%%%%%%%%%%%%%
 %Aeq = [];rhAeq = [];
 lb = zeros(1,size(H,1));
-options = optimset('TolFun',1e-4,'LargeScale','off','Algorithm','active-set','MaxIter',800);
+% options = optimset('TolFun',1e-4,'LargeScale','off','Algorithm','sqp-legacy','MaxIter',800);
+options = optimset('TolFun',1e-4,'LargeScale','off','MaxIter',800);
 [alpha,fval,exitflag,output] =  quadprog(H,f,[],[],Aeq,rhAeq,lb,[],[],options);
 % if ~exitflag
 %     keyboard;
