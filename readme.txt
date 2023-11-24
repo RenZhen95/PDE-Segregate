@@ -36,7 +36,7 @@ TODO:
            Y = Y-miny+1;
        end
    --------------------------------
- - Genes whose p-values<0.05 are also further removed
+ - Genes whose p-values<0.005 are also further removed
 
 2. Cai selected for top features ranging from 5-30, increments of 1
 3. LOOCV (repeated ten times)

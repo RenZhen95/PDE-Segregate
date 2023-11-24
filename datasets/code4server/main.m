@@ -1,2 +1,0 @@
-pkg load statistics
-Exp4LOOCV_Genedata
