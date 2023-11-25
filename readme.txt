@@ -12,13 +12,10 @@ https://link.springer.com/article/10.1007/s11227-019-02975-7
 2. Feature weight estimation for gene selection: a local hyperlinear learning approach
 https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-15-70#Sec2
 
-Treating the trimming threshold as a part of the hyperparameter tuning
-Krstajic, 2014
-
 Classifiers:
-SVM
-kNN
-Naive Bayes
+SVM {'C': [1,10,100,1000], 'gamma': [0.001,0.0001], 'kernel': ['rbf']}
+kNN {nNeighbors=(3, 5, 7, 9)}
+Naive Bayes 
 LDA
 
 TODO:
@@ -42,7 +39,9 @@ TODO:
 3. LOOCV (repeated ten times)
    - provides an unbiased estimate of the generalization error
    - 5-fold CV on training data for hyperparameter tuning
-   
+
+------------------------------------------------------------------------------------------------------------------
+Writing points
 Filter methods:
 RELIEF algorithm
  - considered to be one of the most successful owing to its simplicity and effectiveness (Cai, 2014)
@@ -52,7 +51,12 @@ MultiSURF
  - checkout:
  1. https://github.com/EpistasisLab/scikit-rebate
  2. https://epistasislab.github.io/scikit-rebate/using/#multisurf_1
-
+Relief-LH (Cai, 2014)
+ - authors suggestion for nearest neighbors:
+   - 3-5   : small samples
+   - 10-20 : largest samples
+ - author however suggested a rule of thumb of 7
+ 
 Filter methods select features according to discriminant criteria based on the characteristics of the
 data, independent of any classification algorithms (Cai, 2014).
 
@@ -61,5 +65,15 @@ Discriminant criteria commonly used:
  - Fisher ratio measurements
  - Mutual information measurements
  - RELIEF-based measurements
+
+According to (Benhar, 2022), univariate approaches first rank features individually using some performance
+measures where the final feature subset is then determined by establising a threshold value or specifying
+the number of features to retain.
+
+Univariate filters are more computationally efficient compared to multivariate filters and thus applied
+in many circumstances (Abellana, 2023).
+
+Literature:
+Benhar, H., Hosni, M., & Idri, A. (2022). Univariate and Multivariate Filter Feature Selection for Heart Disease Classification. Journal of Information Science & Engineering, 38(4).
 
 

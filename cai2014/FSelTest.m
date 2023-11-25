@@ -17,6 +17,7 @@ Sigma4KernelALH = linspace(0.1,2,5);
 Lambda = [0.001 0.1 1];;
 [Weight_LM,Theta_LM] = LHR(X', Y,Para4IRelief);
 KK = [5:30];
+
 tmCV = zeros(length(Para4IRelief.NN ),length(KK),4);
 avg = 0.7;
 
