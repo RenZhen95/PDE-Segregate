@@ -13,7 +13,7 @@ def segregateX_y(X, y):
 
     return _subX
 
-def plot_overlapAreas(_kernels, _lengths, computedOA, _featName, _title, _ax):
+def plot_overlapAreas(_kernels, _lengths, computedOA, _featName, _title, _ax, _ylim=None):
     yStack = []
     _xGrid = np.linspace(0, 1, max(_lengths))
 
@@ -26,14 +26,16 @@ def plot_overlapAreas(_kernels, _lengths, computedOA, _featName, _title, _ax):
     yIntersection = np.amin(yStack, axis=0)
 
     fill_poly = _ax.fill_between(
-        _xGrid, 0, yIntersection, label=f'Intersection: {round(computedOA,2)}'
+        _xGrid, 0, yIntersection, label=f'Intersection: {round(computedOA,3)}'
     )
     fill_poly.set_hatch('xxx')
 
     _ax.set_xlabel(_featName)
     _ax.set_xlim((0.0, 1.0))
     _ax.set_xticks(np.arange(0.0, 1.1, 0.1))
-    _ax.set_ylim((0.0, 3.5))
+    if not _ylim is None:
+        _ax.set_ylim(_ylim)
+
     _ax.legend(bbox_to_anchor=(0.8,1), loc='upper left', title=_title, fontsize='small')
 
 def compute_OA(yLabels, y_segregatedGroup, feat_idx):
