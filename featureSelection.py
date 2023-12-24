@@ -8,9 +8,9 @@ from collections import defaultdict
 from mrmr import mrmr_classif
 from skrebate import ReliefF, MultiSURF
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.feature_selection import mutual_info_classif
+from sklearn.feature_selection import mutual_info_classif, f_classif
 
-from pdfSegregationBased_FS import get_overlappingAreasofPDF
+from pde_segregate import PDE_Segregate
 
 def intersection(l1, l2):
     l3 = [value for value in l1 if value in l2]
@@ -93,6 +93,9 @@ for dataset in datasets_dict.keys():
     # Mutual Information
     resMI = mutual_info_classif(X, y, n_neighbors=7, random_state=0)
 
+    # ANOVA F-value
+    resFT_stat, resFT_p = f_classif(X, y)
+
     # Random forest ensemble data mining to increase information gain/reduce impurity
     rfGini = RandomForestClassifier(n_estimators=1000, criterion="gini", random_state=0)
     rfGini.fit(X,y)
@@ -103,27 +106,45 @@ for dataset in datasets_dict.keys():
     rfEntropy_featureImportance = rfEntropy.feature_importances_
 
     # Proposed algorithm
-    # Overlapping Areas of PDFs
-    resOA = get_overlappingAreasofPDF(X, y)
-    # Reminder: The larger the overlapping areas of the PDFs, the weaker the
-    # discriminating power of that feature
-    resOA *= -1
+    # Overlapping Areas of PDEs
+    pdeSegregate = PDE_Segregate(X, y)
 
-    inds_topFeatures_RlfF   = get_indsTopnFeatures(RlfF.feature_importances_, nRetainedFeatures)
-    inds_topFeatures_MSurf  = get_indsTopnFeatures(MSurf.feature_importances_, nRetainedFeatures)
-    inds_topFeatures_RlfI   = get_indsTopnFeatures(ReliefI_dict[dataset], nRetainedFeatures)
-    inds_topFeatures_RlfLM  = get_indsTopnFeatures(ReliefLM_dict[dataset], nRetainedFeatures)
-    inds_topFeatures_MI     = get_indsTopnFeatures(resMI, nRetainedFeatures)
-    inds_topFeatures_RFGini = get_indsTopnFeatures(rfGini_featureImportance, nRetainedFeatures)
-    inds_topFeatures_RFEtry = get_indsTopnFeatures(rfEntropy_featureImportance, nRetainedFeatures)
-    inds_topFeatures_OA     = get_indsTopnFeatures(resOA, nRetainedFeatures)
-    inds_allFeatures_OA     = get_indsTopnFeatures(resOA, X.shape[1])
+    inds_topFeatures_RlfF = get_indsTopnFeatures(
+        RlfF.feature_importances_, nRetainedFeatures
+    )
+    inds_topFeatures_MSurf = get_indsTopnFeatures(
+        MSurf.feature_importances_, nRetainedFeatures
+    )
+    inds_topFeatures_RlfI = get_indsTopnFeatures(
+        ReliefI_dict[dataset], nRetainedFeatures
+    )
+    inds_topFeatures_RlfLM = get_indsTopnFeatures(
+        ReliefLM_dict[dataset], nRetainedFeatures
+    )
+    inds_topFeatures_MI = get_indsTopnFeatures(
+        resMI, nRetainedFeatures
+    )
+    inds_topFeatures_FT = get_indsTopnFeatures(
+        resFT_stat, nRetainedFeatures
+    )
+    inds_topFeatures_RFGini = get_indsTopnFeatures(
+        rfGini_featureImportance, nRetainedFeatures
+    )
+    inds_topFeatures_RFEtry = get_indsTopnFeatures(
+        rfEntropy_featureImportance, nRetainedFeatures
+    )
+    inds_topFeatures_OA = pdeSegregate.get_topnFeatures(nRetainedFeatures)
+    inds_allFeatures_OA = pdeSegregate.get_topnFeatures(X.shape[1])
 
     inds_topFeatures = {
-        "RlfF": inds_topFeatures_RlfF, "MSurf": inds_topFeatures_MSurf,
-        "RlfI": inds_topFeatures_RlfI, "RlfLM": inds_topFeatures_RlfLM,
+        "RlfF": inds_topFeatures_RlfF,
+        "MSurf": inds_topFeatures_MSurf,
+        "RlfI": inds_topFeatures_RlfI,
+        "RlfLM": inds_topFeatures_RlfLM,
         "MI": inds_topFeatures_MI,
-        "RFGini": inds_topFeatures_RFGini, "RFEtry": inds_topFeatures_RFEtry,
+        "FT": inds_topFeatures_FT,
+        "RFGini": inds_topFeatures_RFGini,
+        "RFEtry": inds_topFeatures_RFEtry,
         "OA": inds_topFeatures_OA
     }
 
