@@ -7,7 +7,9 @@ import seaborn as sns; sns.set()
 
 def plot_boxPlot(filePath, ax):
     df = pd.read_csv(filePath, index_col=0)
-    df_forBoxPlots = pd.DataFrame(np.zeros((192, 3)), columns=["FS", "BalAcc", "Learning Algorithm"])
+    df_forBoxPlots = pd.DataFrame(
+        np.zeros((192, 3)), columns=["FS", "BalAcc", "Learning Algorithm"]
+    )
     df_forBoxPlots = df_forBoxPlots.astype(
         {"Learning Algorithm": "object", "FS": "object"}, copy=True
     )
