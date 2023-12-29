@@ -83,10 +83,10 @@ for dataset in datasets_dict.keys():
 
     # From scikit-rebate (https://github.com/EpistasisLab/scikit-rebate)
     # ReliefF
-    RlfF = ReliefF(n_neighbors=7) # From Cai, 2014
+    RlfF = ReliefF(n_neighbors=7, n_jobs=-1) # From Cai, 2014
     RlfF.fit(X, y)
     # MultiSURF
-    MSurf = MultiSURF()
+    MSurf = MultiSURF(n_jobs=-1)
     MSurf.fit(X,y)
 
     # From scikit-learn
@@ -97,11 +97,17 @@ for dataset in datasets_dict.keys():
     resFT_stat, resFT_p = f_classif(X, y)
 
     # Random forest ensemble data mining to increase information gain/reduce impurity
-    rfGini = RandomForestClassifier(n_estimators=1000, criterion="gini", random_state=0)
+    rfGini = RandomForestClassifier(
+        n_estimators=1000, criterion="gini", random_state=0,
+        n_jobs=-1
+    )
     rfGini.fit(X,y)
     rfGini_featureImportance = rfGini.feature_importances_
 
-    rfEntropy = RandomForestClassifier(n_estimators=1000, criterion="entropy", random_state=0)
+    rfEntropy = RandomForestClassifier(
+        n_estimators=1000, criterion="entropy", random_state=0,
+        n_jobs=-1
+    )
     rfEntropy.fit(X,y)
     rfEntropy_featureImportance = rfEntropy.feature_importances_
 
