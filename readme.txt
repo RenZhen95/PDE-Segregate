@@ -5,6 +5,42 @@ https://www.youtube.com/watch?v=DCgPRaIDYXA
 Something more in-depth:
 https://seehuhn.github.io/MATH5714M/X01-KDE.html#kernel-density-estimation
 
+From Scott:
+ - The histogram might be proved to be an inadmissble (not allowed) estimator, but that 
+ theoretical fact should not be taken to suggest histograms should not be used.
+ - Some methods that are theoretically superior are almost never used in practice. The reason 
+ is that the ordering of algorithms is not absolute, but is dependent not only on the 
+ unknown density but also on the sample size.
+ - Thus the histogram is generally superior for small samples regardless of its asymptotic 
+ properties.
+ - However, if the notion that optimality is all important is adopted, then the focus becomes 
+ matching the theoretical properties of an estimator to the assumed properties of the density 
+ function. Is it a gross inefficiency to use a procedure that requires only two continuous 
+ derivatives when the curve in fact has six continuous derivatives?
+ -  In practice, when faced with the application of a procedure that requires six derivatives, 
+ or some other assumption that cannot be proved in practice, it is more important to be able 
+ to recognize the signs of estimator failure than to worry too much about assumptions.
+ - The notions of efficiency and admissibility are related to the choice of a criterion, which 
+ can only imperfectly measure the quality of a nonparametric estimate. Unlike optimal parametric 
+ estimates that are useful for many purposes, nonparametric estimates must be optimized for each 
+ application. The extra work is justified by the extra flexibility.
+ - As the choice of criterion is imperfect, so then is the notion of a single optimal estimator. 
+ This attitude reflects not sloppy thinking, but rather the imperfect relationship between the 
+ practical and theoretical aspects of our methods.
+ - Visualization is an important component of nonparametric data analysis.
+ - Function visualization is a significant component of nonparametric function estimation, and 
+ can draw on the relevant literature in the fields of scientific visualization and computer graphics.
+ - Non-parametric curves are driven by structure in the data and are broadly applicable
+ - Parametric curves rely on model building and prior knowledge of the equations underlying the data
+	- Two phases of parametric estimation: specification and estimation
+ - An incorrectly specified parametric model has a bias that cannot be removed by large samples alone.
+ - The “curse of optimality” is that incorrect application of “optimal” methods is preferred to more 
+ general but less-efficient methods.
+ - What Pearson failed to argue persuasively is that optimal estimators can become inefficient with 
+ only small perturbations in the assumptions underlying the parametric model.
+ - The modern emphasis on robust estimation correctly sacrifices a small percentage of parametric 
+ optimality in order to achieve greater insensitivity to model misspecification.
+
 Feature Selection
 1. A new improved filter-based feature selection model for high-dimensional data
 https://link.springer.com/article/10.1007/s11227-019-02975-7
