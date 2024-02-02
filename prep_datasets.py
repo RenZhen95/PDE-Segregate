@@ -48,15 +48,16 @@ def preprocessing_features(_X, _y, sig_level):
     return _X[:, inds_sig_features]
 
 if len(sys.argv) < 2:
-    print("Possible usage: python3 train.py <datasetsFolder>")
+    print("Possible usage: python3 prep_datasets.py <datasetsFolder>")
     sys.exit(1)
 else:
     datasetsFolder = Path(sys.argv[1])
 
 processedDatasets_dict = defaultdict()
+sigLevel = 0.05
 for f in os.scandir(datasetsFolder):
     datasetName = f.name.split('.')[0]
-    print(f"Processing {datasetName} ... ")
+    datasetDetected = False
 
     # Loading .mat files
     if f.name[-3:] == "mat":
@@ -68,35 +69,41 @@ for f in os.scandir(datasetsFolder):
             data = loadmat(f)
             X = data['X']
             y = data['Y'].reshape(data['Y'].shape[0],)
-    
+
+        datasetDetected = True
+
     # Gene expression dataset
-    else:
+    elif f.name[-3:] == "csv":
         dataset = pd.read_csv(f, index_col=0)
         X = dataset.iloc[:,:-1].values
         y = dataset.iloc[:,-1].to_numpy()
-    
-    # Normalizing the training data
-    X_st = zscore(X, axis=0, ddof=1, nan_policy='propagate')
-    
-    # Standardizing the y labels
-    # Examples: {-1, 1} > {1, 2}
-    y_st, y_mapper = updateLabel(y)
+        datasetDetected = True
 
-    # Preprocessing step:
-    # Removing features with p-values < 0.005 (Feature - Label)
-    if isinstance(y_st, list):
-        y_st = np.array(y_st)
-    X_streduced = preprocessing_features(X_st, y_st, 0.005)
-    
-    print(X_streduced)
-    print(X_streduced.shape)
-    print(y_st)
-    print(y_mapper)
+    if datasetDetected:
+        print(f"Processing {datasetName} ... ")
 
-    dataset_dict = {'X': X_streduced, 'y': y_st, 'y_mapper': y_mapper}
-    processedDatasets_dict[datasetName] = dataset_dict
+        # Normalizing the training data
+        X_st = zscore(X, axis=0, ddof=1, nan_policy='propagate')
 
-with open("processedDatasets_pkl", "wb") as handle:
+        # Standardizing the y labels
+        # Examples: {-1, 1} > {1, 2}
+        y_st, y_mapper = updateLabel(y)
+
+        # Preprocessing step:
+        # Removing features with p-values < 0.005 (Feature - Label)
+        if isinstance(y_st, list):
+            y_st = np.array(y_st)
+        X_streduced = preprocessing_features(X_st, y_st, sigLevel)
+
+        print(X_streduced)
+        print(X_streduced.shape)
+        print(y_st)
+        print(y_mapper)
+
+        dataset_dict = {'X': X_streduced, 'y': y_st, 'y_mapper': y_mapper}
+        processedDatasets_dict[datasetName] = dataset_dict
+
+with open(f"processedDatasets_{sigLevel}.pkl", "wb") as handle:
     pickle.dump(processedDatasets_dict, handle)
 
 sys.exit(0)
