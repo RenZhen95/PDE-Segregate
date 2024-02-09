@@ -218,3 +218,5 @@ class PDE_Segregate():
             _ax.set_ylim(_ylim)
 
         _ax.legend(bbox_to_anchor=(0.8,1), loc='upper left', title=_title, fontsize='small')
+
+        plt.show()
