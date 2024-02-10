@@ -183,7 +183,7 @@ class PDE_Segregate():
         return _subX
 
     def plot_overlapAreas(
-            self, feat_idx, feat_names=None, _ylim=None, _title=None
+            self, feat_idx, feat_names=None, _ylim=None, _title=None, show_samples=False
     ):
         """
         Function to plot overlapping areas for a given feature
@@ -198,7 +198,15 @@ class PDE_Segregate():
             Y = np.reshape(k[1](_xGrid).T, _xGrid.shape)
             yStack.append(Y)
 
+            # Plotting the probabilty density estimate per class
             _ax.plot(_xGrid, Y, label=k[0])
+
+        # Plotting the data samples
+        if show_samples:
+            yMax = _ax.get_ylim()[1]
+            for k in _kernels:
+                _ax.vlines(self.y_segregatedGroup[k], 0.0, 0.01*yMax)
+            
 
         yIntersection = np.amin(yStack, axis=0)
 
