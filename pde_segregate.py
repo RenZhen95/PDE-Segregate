@@ -103,7 +103,7 @@ class PDE_Segregate():
 
         return inds_topFeatures
 
-    def compute_OA(self, feat_idx):
+    def compute_OA(self, feat_idx, return_series=False):
         """
         Compute the overlapping areas of the PDE of class-segregated groups
         for a given feature
@@ -122,6 +122,8 @@ class PDE_Segregate():
         # Parameters to "center" the series
         minVal = total_y.min()
         maxValCentered = (total_y - minVal).max()
+
+        normalizedX = defaultdict()
 
         for y in self.yLabels:
             X_feat_idx = self.y_segregatedGroup[y][:, feat_idx]
@@ -146,6 +148,9 @@ class PDE_Segregate():
                     "exhibits zero standard deviation!"
                 )
 
+            if return_series:
+                normalizedX[y] = X_feat_idxNormalized
+
         # There must be AT LEAST two target groups with non-zero S.D, or this feature
         # ranking method just makes no sense
         if len(lengths) < 2:
@@ -158,7 +163,7 @@ class PDE_Segregate():
             time.sleep(10)
         else:
             # Initializing the x-axis grid
-            XGrid = np.linspace(0, 1, max(lengths))
+            XGrid = np.linspace(0, 1, 1000)
 
             yStack = []
             for k in kernels:
@@ -168,7 +173,10 @@ class PDE_Segregate():
             yIntersection = np.amin(yStack, axis=0)
             OA = np.trapz(yIntersection, XGrid)
 
-        return OA, kernels, lengths
+        if return_series:
+            return OA, kernels, lengths, normalizedX
+        else:
+            return OA, kernels, lengths
 
     def segregateX_y(self):
         """
@@ -183,35 +191,46 @@ class PDE_Segregate():
         return _subX
 
     def plot_overlapAreas(
-            self, feat_idx, feat_names=None, _ylim=None, _title=None, show_samples=False
+            self, feat_idx, feat_names=None, _ylim=None, _title=None, show_samples=False,
+            savefig_title=None
     ):
         """
         Function to plot overlapping areas for a given feature
         """
-        OA, _kernels, _lengths = self.compute_OA(feat_idx)
+        OA, _kernels, _lengths, normalizedX = self.compute_OA(
+            feat_idx, return_series=True
+        )
 
         yStack = []
-        _xGrid = np.linspace(0, 1, max(_lengths))
+        _xGrid = np.linspace(0, 1, 1000)
 
         fig, _ax = plt.subplots(1,1)
+        linecolors = []
         for k in _kernels:
             Y = np.reshape(k[1](_xGrid).T, _xGrid.shape)
             yStack.append(Y)
 
             # Plotting the probabilty density estimate per class
-            _ax.plot(_xGrid, Y, label=k[0])
+            p = _ax.plot(_xGrid, Y, label=k[0])
+            # Get line colors
+            linecolors.append(p[0].get_color())
 
         # Plotting the data samples
         if show_samples:
             yMax = _ax.get_ylim()[1]
-            for k in _kernels:
-                _ax.vlines(self.y_segregatedGroup[k], 0.0, 0.01*yMax)
-            
+            for i, k in enumerate(_kernels):
+                _ax.vlines(
+                    normalizedX[k[0]], 0.0, 0.03*yMax,
+                    color=linecolors[i], alpha=0.7
+                )
 
+        # Getting the smallest probabilities of all the estimates at every
+        # grid point
         yIntersection = np.amin(yStack, axis=0)
 
         fill_poly = _ax.fill_between(
-            _xGrid, 0, yIntersection, label=f'Intersection: {round(OA, 3)}'
+            _xGrid, 0, yIntersection, label=f'Intersection: {round(OA, 3)}',
+            color="lightgray", edgecolor="white"
         )
         fill_poly.set_hatch('xxx')
 
@@ -220,11 +239,14 @@ class PDE_Segregate():
         else:
             _ax.set_xlabel(f"Feature {feat_idx}")
 
-        _ax.set_xlim((0.0, 1.0))
+        _ax.set_xlim((-0.005, 1.005))
         _ax.set_xticks(np.arange(0.0, 1.1, 0.1))
         if not _ylim is None:
             _ax.set_ylim(_ylim)
 
         _ax.legend(bbox_to_anchor=(0.8,1), loc='upper left', title=_title, fontsize='small')
+        _ax.grid(visible=True, which="major", axis="both")
 
-        plt.show()
+        if not savefig_title is None:
+            fig.savefig(f"{savefig_title}.svg", format="svg")
+        
