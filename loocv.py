@@ -17,12 +17,16 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 from sklearn.metrics import balanced_accuracy_score
 
-if len(sys.argv) < 3:
-    print("Possible usage: python3 loocv.py <processedDatasets> <selFeatures>")
+if len(sys.argv) < 4:
+    print(
+        "Possible usage: python3 loocv.py <processedDatasets> " +
+        "<selFeatures> <saveFolder>"
+    )
     sys.exit(1)
 else:
     processedDatasets_pkl = Path(sys.argv[1])
     selFeatures_pkl = Path(sys.argv[2])
+    saveFolder = Path(sys.argv[3])
 
 with open(processedDatasets_pkl, "rb") as handle:
     processedDatasets_dict = pickle.load(handle)
@@ -32,13 +36,17 @@ with open(selFeatures_pkl, "rb") as handle:
 
 # Experiment with the following number of retained features
 nRetainedFeatures = [5, 10, 15, 20, 25, 30]
-    
+
 for ds in topFeatures.keys():
     print(f"Dataset: {ds}")
     ds_results = pd.DataFrame(columns=["kNN", "SVM", "Gaussian-NB", "LDA", "DT"])
 
     for fs in topFeatures[ds].keys():
         print(f" - Feature selection scheme: {fs}")
+        if fs == "RFEtry":
+            print("Skipping over RFEtry ...")
+            continue
+
         for n_ in nRetainedFeatures:
             print(f" - Number of retained features: {n_}")
             X = processedDatasets_dict[ds]['X']
@@ -95,7 +103,7 @@ for ds in topFeatures.keys():
 
                 # DT
                 dt_clf = DecisionTreeClassifier(random_state=0)
-                dt_params = {'splitter': ["best", "random"], 'max_depth': [3,4,5]}
+                dt_params = {'splitter': ["best", "random"], 'max_depth': [3,5,7,9]}
                 clfdt_GS = GridSearchCV(
                     dt_clf, dt_params, cv=CV_3fold, scoring="balanced_accuracy"
                 )
@@ -119,6 +127,6 @@ for ds in topFeatures.keys():
             )
 
     # Saving results per dataset
-    ds_results.to_csv(f"results_3foldcv/{ds}_LOOCV.csv")
+    ds_results.to_csv(saveFolder.joinpath(f"{ds}_LOOCV.csv"))
 
 sys.exit(0)

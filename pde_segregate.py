@@ -16,14 +16,21 @@ class PDE_Segregate():
         Get feature importance based on feature's ability to segregate the
         PDEs of the class-segregated samples. Returns the negative overlapping
         areas of the PDEs, such that the lower the score (i.e. the more
-        negative the area), the less important the feature
+        negative the area), the less important the feature.
+
+        Returns
+        -------
+        numpy.array
+         - The NEGATIVE of the computed integral quantifying the intersection 
+           of the areas below all the probability density estimate curves of 
+           each feature.
         """
         return -1*self.overlappingAreas
 
 
     def compute_PDEoverlappingAreas(self):
         """
-        Get the overlapping areas of the PDE of class-segregated groups
+        Get the overlapping areas of the PDE of class-segregated groups.
         """
         # Grouping the samples according to unique y label
         self.y_segregatedGroup = self.segregateX_y()
@@ -33,7 +40,7 @@ class PDE_Segregate():
 
         for y in self.y_segregatedGroup.keys():
             if self.y_segregatedGroup[y].shape[0] < 2:
-                yToRemove.append(score)
+                yToRemove.append(y)
                 print(
                     f"---\ny={y} sub-dataset has only 1 sample and will be " +
                     "excluded ... "
@@ -63,7 +70,18 @@ class PDE_Segregate():
 
     def get_topnFeatures(self, n):
         """
-        Returns the indices of the top n features
+        Returns the indices of the top n features.
+
+        Parameters
+        ----------
+        n : int
+         - Desired number of top features
+
+        Returns
+        -------
+        inds_topFeatures : list
+         - List of top n features, starting from the most to least important
+           features.
         """
         res_tmp = self.overlappingAreas
         res_tmpSorted = np.sort(res_tmp)
@@ -106,7 +124,29 @@ class PDE_Segregate():
     def compute_OA(self, feat_idx, return_series=False):
         """
         Compute the overlapping areas of the PDE of class-segregated groups
-        for a given feature
+        for a given feature.
+
+        Parameters
+        ----------
+        feat_idx : int
+         - Index of the desired feature in the given dataset, X.
+
+        reture_series : bool
+         - Option to return the centered series
+
+        Returns
+        -------
+        OA : float
+         - Computed overlapping region of the PDEs.
+
+        kernels : list
+         - List of kernels containing kernel density estimator of each class.
+
+        lengths : list
+         - List of sample size of each class.
+
+        normalizedX : numpy.array
+         - Array of normalized feature vector.
         """
         lengths = []
         kernels = []
@@ -163,7 +203,7 @@ class PDE_Segregate():
             time.sleep(10)
         else:
             # Initializing the x-axis grid
-            XGrid = np.linspace(0, 1, 1000)
+            XGrid = np.linspace(0, 1, max(1000, max(lengths)))
 
             yStack = []
             for k in kernels:
@@ -202,7 +242,7 @@ class PDE_Segregate():
         )
 
         yStack = []
-        _xGrid = np.linspace(0, 1, 1000)
+        _xGrid = np.linspace(0, 1, max(1000, max(_lengths)))
 
         fig, _ax = plt.subplots(1,1)
         linecolors = []
@@ -227,7 +267,6 @@ class PDE_Segregate():
         # Getting the smallest probabilities of all the estimates at every
         # grid point
         yIntersection = np.amin(yStack, axis=0)
-
         fill_poly = _ax.fill_between(
             _xGrid, 0, yIntersection, label=f'Intersection: {round(OA, 3)}',
             color="lightgray", edgecolor="white"
@@ -246,6 +285,7 @@ class PDE_Segregate():
 
         _ax.legend(bbox_to_anchor=(0.8,1), loc='upper left', title=_title, fontsize='small')
         _ax.grid(visible=True, which="major", axis="both")
+        plt.show()
 
         if not savefig_title is None:
             fig.savefig(f"{savefig_title}.svg", format="svg")

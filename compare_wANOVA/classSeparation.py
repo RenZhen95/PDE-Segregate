@@ -1,20 +1,25 @@
-import sys
+import os, sys
 import numpy as np
 import pandas as pd
-from pde_segregate import PDE_Segregate
 from sklearn.feature_selection import f_classif
 
-# Dataset parameters
-nSamples = [5, 100, 500, 1000, 1500, 2000, 2500, 3000]
+sys.path.append(os.path.dirname(os.getcwd()))
+from pde_segregate import PDE_Segregate
 
-for n in nSamples:
+# Dataset parameters
+separation = [1, 3, 5, 7]
+
+for s in separation:
+    print(f"Separation of class 1 from class 0: {s}")
+    print("========================================")
+
     # Creating the Generator instance
     rng = np.random.default_rng(122807528840384100672342137672332424406)
     print(rng.random()) # as check
 
+    n = 3000
     n0 = n
     n1 = n
-    separation_factor = 1
     class0_sd = 1.0
     class1_sd = 1.0
     
@@ -24,7 +29,7 @@ for n in nSamples:
     
     # Class 1
     class1 = rng.normal(
-        loc=separation_factor*class0_calcsd, scale=class1_sd, size=n1
+        loc=s*class0_calcsd, scale=class1_sd, size=n1
     )
     
     # Initializing the dataset
@@ -81,8 +86,8 @@ for n in nSamples:
     
     # Plot overlapping areas
     pdeSegregate.plot_overlapAreas(
-        0, feat_names=None, _ylim=(0.0, 3.7), _title=None, show_samples=True,
-        savefig_title=f"{n}_{n}_sep{separation_factor}_{class0_sd}sd_{class1_sd}sd"
+        0, feat_names='X', _ylim=None, _title=None, show_samples=True,
+        savefig_title=f"{n}_{n}_sep{s}_{class0_sd}sd_{class1_sd}sd"
     )
 
 sys.exit()
