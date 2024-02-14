@@ -231,11 +231,12 @@ class PDE_Segregate():
         return _subX
 
     def plot_overlapAreas(
-            self, feat_idx, feat_names=None, _ylim=None, _title=None, show_samples=False,
-            savefig_title=None
+            self, feat_idx, feat_names=None, _ylim=None, _title=None,
+            show_samples=False, savefig=None, format="svg",
+            legend=False, _ax=None
     ):
         """
-        Function to plot overlapping areas for a given feature
+        Function to plot overlapping areas for a given feature.
         """
         OA, _kernels, _lengths, normalizedX = self.compute_OA(
             feat_idx, return_series=True
@@ -244,7 +245,9 @@ class PDE_Segregate():
         yStack = []
         _xGrid = np.linspace(0, 1, max(1000, max(_lengths)))
 
-        fig, _ax = plt.subplots(1,1)
+        if _ax is None:
+            fig, _ax = plt.subplots(1,1)
+
         linecolors = []
         for k in _kernels:
             Y = np.reshape(k[1](_xGrid).T, _xGrid.shape)
@@ -269,7 +272,7 @@ class PDE_Segregate():
         yIntersection = np.amin(yStack, axis=0)
         fill_poly = _ax.fill_between(
             _xGrid, 0, yIntersection, label=f'Intersection: {round(OA, 3)}',
-            color="lightgray", edgecolor="white"
+            color="lightgray", edgecolor="lavender"
         )
         fill_poly.set_hatch('xxx')
 
@@ -283,10 +286,15 @@ class PDE_Segregate():
         if not _ylim is None:
             _ax.set_ylim(_ylim)
 
-        _ax.legend(bbox_to_anchor=(0.8,1), loc='upper left', title=_title, fontsize='small')
-        _ax.grid(visible=True, which="major", axis="both")
-        plt.show()
+        if legend:
+            _ax.legend(bbox_to_anchor=(0.8,1), loc='upper left', title=_title, fontsize='small')
 
-        if not savefig_title is None:
-            fig.savefig(f"{savefig_title}.svg", format="svg")
+        # If user DOES NOT pass a matplotlib Axes object from the outside
+        if _ax is None:
+            _ax.grid(visible=True, which="major", axis="both")
+
+            if not savefig is None:
+                fig.savefig(f"{savefig}.{format}", format=format)
+            else:
+                plt.show()
         

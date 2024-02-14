@@ -1,15 +1,20 @@
 import os, sys
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from sklearn.feature_selection import f_classif
 
 sys.path.append(os.path.dirname(os.getcwd()))
 from pde_segregate import PDE_Segregate
 
 # Dataset parameters
-separation = [1, 3, 5, 7]
+separation = [1, 3, 5]
 
-for s in separation:
+fig, axs = plt.subplots(1, 3, figsize=(11.5, 5.3), sharey=True)
+
+areaIntersection = []
+
+for i, s in enumerate(separation):
     print(f"Separation of class 1 from class 0: {s}")
     print("========================================")
 
@@ -48,6 +53,7 @@ for s in separation:
     
     # Overlapping areas
     print(f"OA from PDE-Segregate: {pdeSegregate.overlappingAreas[0]}")
+    areaIntersection.append(pdeSegregate.overlappingAreas[0])
     
     # ANOVA F-Test
     f_statistic, p_values = f_classif(X, y)
@@ -86,9 +92,16 @@ for s in separation:
     
     # Plot overlapping areas
     pdeSegregate.plot_overlapAreas(
-        0, feat_names='X', _ylim=None, _title=None, show_samples=True,
-        savefig_title=f"{n}_{n}_sep{s}_{class0_sd}sd_{class1_sd}sd"
+        0, feat_names='X', _ylim=(0.0, 5.25), _title=None,
+        show_samples=True, _ax=axs[i], legend=False
     )
 
+# Figures post-processing
+for i in range(3):
+    axs[i].grid(visible=True, which="major", axis="both")
+    axs[i].set_title(f"Intersection area: {np.round(areaIntersection[i],3)}")
+
+plt.tight_layout()
+plt.show()
+
 sys.exit()
-    

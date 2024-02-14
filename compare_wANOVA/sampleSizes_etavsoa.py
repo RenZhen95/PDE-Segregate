@@ -8,11 +8,14 @@ sys.path.append(os.path.dirname(os.getcwd()))
 from pde_segregate import PDE_Segregate
 
 # Dataset parameters
-nSamples = [5, 100, 3000]
-
-fig, axs = plt.subplots(1, 3, figsize=(11.5, 5.3), sharey=True)
+nSamples = [
+    5, 100, 250, 500, 750, 1000, 1250, 1500, 1750,
+    2000, 2250, 2500, 2750, 3000
+]
 
 areaIntersection = []
+etaSquares = []
+fratios = []
 
 for i, n in enumerate(nSamples):
     print(f"Sample size: {n}")
@@ -85,21 +88,28 @@ for i, n in enumerate(nSamples):
     # 4. F-ratio
     F = MS_between / MS_within
     print(f"\nManually computed F-Stat : {F}")
+    fratios.append(F)
     
     # 5. Proportion of Explained Variance
     etaSquared = SS_between / SS_total
     print(f"Manually computed Eta^2  : {etaSquared}")
-    
-    # Plot overlapping areas
-    pdeSegregate.plot_overlapAreas(
-        0, feat_names='X', _ylim=(0.0, 3.7), _title=None,
-        show_samples=True, _ax=axs[i], legend=False
-    )
+    etaSquares.append(etaSquared)
 
-# Figures post-processing
-for i in range(3):
-    axs[i].grid(visible=True, which="major", axis="both")
-    axs[i].set_title(f"Intersection area: {np.round(areaIntersection[i],3)}")
+# Plot eta^2 vs OA
+fig, axs = plt.subplots(1, 2, figsize=(11.5, 5.3))
+axs[1].plot(nSamples, etaSquares, '*-', label=r"ANOVA $\eta^2$")
+axs[1].plot(nSamples, areaIntersection, '*-', label="Intersection area")
+axs[1].legend()
+axs[1].set_title(f"ANOVA $\eta^2$ vs intersection area (PDE-Segregate)")
+axs[1].set_xlabel("Number of samples in each class")
+axs[1].grid(visible=True)
+
+# Plot F-ratio
+axs[0].plot(nSamples, fratios, '*-', label=r"F-ratio", color="black")
+axs[0].legend()
+axs[0].set_title("ANOVA F-ratio")
+axs[0].set_xlabel("Number of samples in each class")
+axs[0].grid(visible=True)
 
 plt.tight_layout()
 plt.show()
