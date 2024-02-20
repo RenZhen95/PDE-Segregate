@@ -1,15 +1,14 @@
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from scipy.stats import gaussian_kde
 
 class PDE_Segregate():
-    def __init__(self, X, y):
+    def __init__(self, X, y, bw_method="scott"):
         self.X = X
         self.y = y
 
-        self.compute_PDEoverlappingAreas()
+        self.compute_PDEoverlappingAreas(bw_method)
 
     def get_scores(self):
         """
@@ -21,14 +20,14 @@ class PDE_Segregate():
         Returns
         -------
         numpy.array
-         - The NEGATIVE of the computed integral quantifying the intersection 
-           of the areas below all the probability density estimate curves of 
+         - The NEGATIVE of the computed integral quantifying the intersection
+           of the areas below all the probability density estimate curves of
            each feature.
         """
         return -1*self.overlappingAreas
 
 
-    def compute_PDEoverlappingAreas(self):
+    def compute_PDEoverlappingAreas(self, bw_method):
         """
         Get the overlapping areas of the PDE of class-segregated groups.
         """
@@ -65,7 +64,7 @@ class PDE_Segregate():
 
         self.overlappingAreas = np.zeros((self.X.shape[1],))
         for feat_idx in range(self.X.shape[1]):
-            OA, kernels, lengths = self.compute_OA(feat_idx)
+            OA, kernels, lengths = self.compute_OA(feat_idx, bw_method)
             self.overlappingAreas[feat_idx] = OA
 
     def get_topnFeatures(self, n):
@@ -121,7 +120,7 @@ class PDE_Segregate():
 
         return inds_topFeatures
 
-    def compute_OA(self, feat_idx, return_series=False):
+    def compute_OA(self, feat_idx, bw_method, return_series=False):
         """
         Compute the overlapping areas of the PDE of class-segregated groups
         for a given feature.
@@ -130,6 +129,11 @@ class PDE_Segregate():
         ----------
         feat_idx : int
          - Index of the desired feature in the given dataset, X.
+
+        bw_method : str, scalar or callable
+         - The method used to calculate the estimator bandwith. This can be
+           'scott' and 'silverman', a scalar constant or a callable. For
+           more details, see scipy.stats.gaussian_kde documentation.
 
         reture_series : bool
          - Option to return the centered series
@@ -174,19 +178,15 @@ class PDE_Segregate():
             X_feat_idxNormalized = X_feat_idx - minVal
             X_feat_idxNormalized = X_feat_idxNormalized / maxValCentered
 
-            # If X has a standard deviation of zero, then we are dealing with a "Dirac
-            # function", which technically has an area bounded by the x-axis of zero and
-            # hence will be ignored
-            if X_feat_idxNormalized.std() != 0.0:
-                lengths.append(X_feat_idxNormalized.shape[0])
+            lengths.append(X_feat_idxNormalized.shape[0])
 
-                kernel = gaussian_kde(X_feat_idxNormalized)
-                kernels.append((y, kernel))
-            else:
-                print(
-                    f"Feature (idx:{feat_idx}) for samples with y={y} " +
-                    "exhibits zero standard deviation!"
-                )
+            # If X has a standard deviation of zero, we will perturb just
+            # the last element to allow for scipy to carry out a Cholesky
+            # Decomposition on the variance matrix
+            X_feat_idxNormalized[-1] += 1e-15 # adding 'zero'
+
+            kernel = gaussian_kde(X_feat_idxNormalized, bw_method)
+            kernels.append((y, kernel))
 
             if return_series:
                 normalizedX[y] = X_feat_idxNormalized
@@ -297,4 +297,3 @@ class PDE_Segregate():
                 fig.savefig(f"{savefig}.{format}", format=format)
             else:
                 plt.show()
-        

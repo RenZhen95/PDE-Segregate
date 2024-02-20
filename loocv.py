@@ -35,7 +35,7 @@ with open(selFeatures_pkl, "rb") as handle:
     topFeatures = pickle.load(handle)
 
 # Experiment with the following number of retained features
-nRetainedFeatures = [5, 10, 15, 20, 25, 30]
+nRetainedFeatures = [25, 50, 75, 100]
 
 for ds in topFeatures.keys():
     print(f"Dataset: {ds}")

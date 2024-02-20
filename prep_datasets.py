@@ -47,14 +47,16 @@ def preprocessing_features(_X, _y, sig_level):
 
     return _X[:, inds_sig_features]
 
-if len(sys.argv) < 2:
-    print("Possible usage: python3 prep_datasets.py <datasetsFolder>")
+if len(sys.argv) < 3:
+    print("Possible usage: python3 prep_datasets.py <datasetsFolder> <sigLevel>")
     sys.exit(1)
 else:
     datasetsFolder = Path(sys.argv[1])
+    sigLevel = float(sys.argv[2])
 
 processedDatasets_dict = defaultdict()
-sigLevel = 0.05
+processedDatasets_noANOVAcut_dict = defaultdict()
+
 for f in os.scandir(datasetsFolder):
     datasetName = f.name.split('.')[0]
     datasetDetected = False
@@ -90,20 +92,35 @@ for f in os.scandir(datasetsFolder):
         y_st, y_mapper = updateLabel(y)
 
         # Preprocessing step:
-        # Removing features with p-values < 0.005 (Feature - Label)
+        # 1. Removing features with p-values < sigLevel (Feature - Label)
         if isinstance(y_st, list):
             y_st = np.array(y_st)
         X_streduced = preprocessing_features(X_st, y_st, sigLevel)
 
+        # 2. Remove features with nan
+        nanCheck = np.isnan(X_st)
+        if np.any(nanCheck):
+            nan_y = np.where(nanCheck)
+            nan_y = list(set(nan_y[1]))
+            X_st = np.delete(X_st, nan_y, 1)
+
+        print(X_st)
+        print(X_st.shape)
+        dataset_dict_noANOVAcut = {'X': X_st, 'y': y_st, 'y_mapper': y_mapper}
+        processedDatasets_noANOVAcut_dict[datasetName] = dataset_dict_noANOVAcut
+        
         print(X_streduced)
         print(X_streduced.shape)
-        print(y_st)
-        print(y_mapper)
-
         dataset_dict = {'X': X_streduced, 'y': y_st, 'y_mapper': y_mapper}
         processedDatasets_dict[datasetName] = dataset_dict
 
+        print(y_st)
+        print(y_mapper)
+
 with open(f"processedDatasets_{sigLevel}.pkl", "wb") as handle:
     pickle.dump(processedDatasets_dict, handle)
+
+with open(f"processedDatasets_noANOVAcut.pkl", "wb") as handle:
+    pickle.dump(processedDatasets_noANOVAcut_dict, handle)
 
 sys.exit(0)
