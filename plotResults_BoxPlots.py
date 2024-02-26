@@ -6,6 +6,31 @@ import matplotlib.pyplot as plt
 import seaborn as sns; sns.set()
 from collections import defaultdict
 
+def get_best_perLA(df, learningAlgo):
+    learningAlgo_df = df[df["LAlgo"]==learningAlgo]
+    top_df = learningAlgo_df[
+        learningAlgo_df["Bal. Acc"]==learningAlgo_df["Bal. Acc"].max()
+    ]
+    top_df.reset_index(inplace=True, drop=True)
+
+    topFSS = top_df["FSS"]
+    topFSS_set = list(set(list(topFSS)))
+
+    # To deal with the case, where multiple FSS produce top performance
+    if len(topFSS) > 1:
+        print(f"{learningAlgo} shows best performance with multiple FSS")
+        prepped_top_df = pd.DataFrame(
+            columns=["Bal. Acc", "FSS", "LAlgo", "# Top Features Retained"]
+        )
+        for fss in topFSS_set:
+            prepped_top_df = pd.concat(
+                [prepped_top_df, top_df[top_df["FSS"]==fss].iloc[0:1]]
+            )
+    else:
+        prepped_top_df = top_df
+
+    return top_df
+
 def plot_boxPlot(df, datasetName, ax):
     # 4 thresholds x 5 learning algo x nFSS
     df_boxPlot = pd.DataFrame(
@@ -25,44 +50,48 @@ def plot_boxPlot(df, datasetName, ax):
             df_boxPlot.at[count, "# Top Features Retained"] = nThreshold
             count += 1
 
-    df_boxPlot25 = df_boxPlot[df_boxPlot["# Top Features Retained"] == 25]
-    df_boxPlot25.reset_index(inplace=True)
-    df_boxPlot50 = df_boxPlot[df_boxPlot["# Top Features Retained"] == 50]
-    df_boxPlot50.reset_index(inplace=True)
-    df_boxPlot75 = df_boxPlot[df_boxPlot["# Top Features Retained"] == 75]
-    df_boxPlot75.reset_index(inplace=True)
-    df_boxPlot100 = df_boxPlot[df_boxPlot["# Top Features Retained"] == 100]
-    df_boxPlot100.reset_index(inplace=True)
-
     axBoxPlot = sns.boxplot(
         data=df_boxPlot, x="Bal. Acc", y="FSS",
         ax=ax, width=0.7, fliersize=0., fill=False
     )
 
-    _alpha = 0.75
+    # Plot points of the best performance per LA
+    topkNN = get_best_perLA(df_boxPlot, "kNN")
+    topSVM = get_best_perLA(df_boxPlot, "SVM")
+    topGNB = get_best_perLA(df_boxPlot, "Gaussian-NB")
+    topLDA = get_best_perLA(df_boxPlot, "LDA")
+    topDT = get_best_perLA(df_boxPlot, "DT")
+
+    _alpha = 0.55
+    _color = "gray"
     sns.stripplot(
-        data=df_boxPlot25, x="Bal. Acc", y="FSS",
-        hue="LAlgo", ax=ax, marker="o", linewidth=1, alpha=_alpha,
-        legend=False
+        data=topkNN, x="Bal. Acc", y="FSS",
+        ax=ax, marker="*", s=15, linewidth=1, alpha=_alpha,
+        color=_color, legend=False
     )
     sns.stripplot(
-        data=df_boxPlot50, x="Bal. Acc", y="FSS",
-        hue="LAlgo", ax=ax, marker="*", s=10, linewidth=1, alpha=_alpha,
-        legend=False
+        data=topSVM, x="Bal. Acc", y="FSS",
+        ax=ax, marker="X", s=12, linewidth=1, alpha=_alpha,
+        color=_color, legend=False
     )
     sns.stripplot(
-        data=df_boxPlot75, x="Bal. Acc", y="FSS",
-        hue="LAlgo", ax=ax, marker="X", s=6.5, linewidth=1, alpha=_alpha,
-        legend=False
+        data=topGNB, x="Bal. Acc", y="FSS",
+        ax=ax, marker="^", s=12, linewidth=1, alpha=_alpha,
+        color=_color, legend=False
     )
     sns.stripplot(
-        data=df_boxPlot100, x="Bal. Acc", y="FSS",
-        hue="LAlgo", ax=ax, marker="P", s=7.5, linewidth=1, alpha=_alpha,
-        legend=False
+        data=topLDA, x="Bal. Acc", y="FSS",
+        ax=ax, marker=9, s=12, linewidth=1, alpha=_alpha,
+        color=_color, legend=False
+    )
+    sns.stripplot(
+        data=topDT, x="Bal. Acc", y="FSS",
+        ax=ax, marker="P", s=12, linewidth=1, alpha=_alpha,
+        color=_color, legend=False
     )
 
     axBoxPlot.set_xlabel("Balanced Accuracy", fontsize="large")
-    axBoxPlot.set_xlim(0.48, 1.02)
+    axBoxPlot.set_xlim(0.45, 1.02)
     axBoxPlot.set_xticks(np.arange(0.5, 1.05, 0.1))
 
     axBoxPlot.set_ylabel("")
@@ -70,7 +99,7 @@ def plot_boxPlot(df, datasetName, ax):
     axBoxPlot.tick_params(axis="both", labelsize="large")
     axBoxPlot.set_title(datasetName, fontsize="x-large")
 
-    return axBoxPlot, df_boxPlot
+    axBoxPlot.grid(visible=True)
 
 if len(sys.argv) < 2:
     print("Possible usage: python3 plotResults_BoxPlots.py <resultsXlFile>")
@@ -83,12 +112,11 @@ datasets = {
     "cns": "CNS",
     "lung": "Lung",
     "leuk": "Leukemia",
-    "dlbcl": "DLBCL",
-    "pros3": "Prostrate",
-    "geneExpressionCancerRNA": "Cancer RNA-Gene Expression",
     "colon": "Colon",
-    "gcm": "GCM"
-    #"PersonGaitDataSet": "Person Gait"
+    "pros3": "Prostrate",
+    "geneExpressionCancerRNA": "Cancer RNA-Gene Expression"
+    # "gcm": "GCM"
+    # "dlbcl": "DLBCL",
 }
 # FSS name-mapper
 FSS_dict = {
@@ -99,9 +127,7 @@ FSS_dict = {
     "RFGini": "Random Forest (Gini)",
     "MI": "Mutual Information",
     "FT": "ANOVA (F-Statistic)",
-    "EtaSq": r"ANOVA $\eta^2$",
-    "OAscott": "PDE-Segregate (Scott)",
-    "OAsilverman": "PDE-Segregate (Silverman)",
+    "OAscott": "PDE-Segregate"
 }
 
 # 6 benchmark datasets
@@ -120,15 +146,21 @@ for d, data_name in datasets.items():
             datasetResults_dict[data_name].drop([i], inplace=True)
 
 # Plot
-# fig, axs = plt.subplots(2, 3, figsize=(15, 8), sharey=True, sharex=True)
-fig, axs = plt.subplots(3, 3, figsize=(15, 12), sharey=True, sharex=True)
+fig, axs = plt.subplots(2, 3, figsize=(15, 8), sharey=True, sharex=True)
 axisCounter = 0
 for d, df in datasetResults_dict.items():
-    axBoxPlot, df_forBoxPlots = plot_boxPlot(
+    print(f"=== === ===\n{d}\n=== === ===")
+    plot_boxPlot(
         df, d, axs[int(axisCounter/3), axisCounter%3]
     )
-    axisCounter += 1        
+    axisCounter += 1
 
+fig.suptitle(
+    "Best Performance per Classifier", fontsize="xx-large",
+    x=0.022, y=0.97, horizontalalignment="left"
+)
 fig.tight_layout()
+
 plt.show()
+
 sys.exit(0)

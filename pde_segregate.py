@@ -1,14 +1,16 @@
 import numpy as np
+import pandas as pd
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from scipy.stats import gaussian_kde
 
 class PDE_Segregate():
-    def __init__(self, X, y, bw_method="scott"):
+    def __init__(self, X, y, xgrid=1000, bw_method="scott"):
         self.X = X
         self.y = y
 
-        self.compute_PDEoverlappingAreas(bw_method)
+        self.compute_PDEoverlappingAreas(xgrid, bw_method)
 
     def get_scores(self):
         """
@@ -27,7 +29,7 @@ class PDE_Segregate():
         return -1*self.overlappingAreas
 
 
-    def compute_PDEoverlappingAreas(self, bw_method):
+    def compute_PDEoverlappingAreas(self, xgrid, bw_method):
         """
         Get the overlapping areas of the PDE of class-segregated groups.
         """
@@ -63,8 +65,11 @@ class PDE_Segregate():
         self.yLabels.sort()
 
         self.overlappingAreas = np.zeros((self.X.shape[1],))
-        for feat_idx in range(self.X.shape[1]):
-            OA, kernels, lengths = self.compute_OA(feat_idx, bw_method)
+        print("Computing the intersection area of each feature ... ")
+        for feat_idx in tqdm(range(self.X.shape[1])):
+            OA, kernels, lengths = self.compute_OA(
+                feat_idx, xgrid, bw_method
+            )
             self.overlappingAreas[feat_idx] = OA
 
     def get_topnFeatures(self, n):
@@ -120,7 +125,7 @@ class PDE_Segregate():
 
         return inds_topFeatures
 
-    def compute_OA(self, feat_idx, bw_method, return_series=False):
+    def compute_OA(self, feat_idx, xgrid, bw_method, return_series=False):
         """
         Compute the overlapping areas of the PDE of class-segregated groups
         for a given feature.
@@ -129,6 +134,9 @@ class PDE_Segregate():
         ----------
         feat_idx : int
          - Index of the desired feature in the given dataset, X.
+
+        xgrid : int
+         - Number of cells in the x-grid
 
         bw_method : str, scalar or callable
          - The method used to calculate the estimator bandwith. This can be
@@ -203,15 +211,16 @@ class PDE_Segregate():
             time.sleep(10)
         else:
             # Initializing the x-axis grid
-            XGrid = np.linspace(0, 1, max(1000, max(lengths)))
+            # XGrid = np.linspace(0, 1, max(1000, max(lengths)))
 
             yStack = []
             for k in kernels:
-                Y = np.reshape(k[1](XGrid).T, XGrid.shape)
+                Y = np.reshape(k[1](xgrid).T, xgrid.shape)
                 yStack.append(Y)
 
             yIntersection = np.amin(yStack, axis=0)
-            OA = np.trapz(yIntersection, XGrid)
+            # OA = np.trapz(yIntersection, XGrid)
+            OA = (yIntersection.sum())/xgrid
 
         if return_series:
             return OA, kernels, lengths, normalizedX
@@ -270,10 +279,18 @@ class PDE_Segregate():
         # Getting the smallest probabilities of all the estimates at every
         # grid point
         yIntersection = np.amin(yStack, axis=0)
-        fill_poly = _ax.fill_between(
-            _xGrid, 0, yIntersection, label=f'Intersection: {round(OA, 3)}',
-            color="lightgray", edgecolor="lavender"
-        )
+        if legend == "intersection":
+            intersectionLegend = True
+            fill_poly = _ax.fill_between(
+                _xGrid, 0, yIntersection, label=f'Intersection: {round(OA, 3)}',
+                color="lightgray", edgecolor="lavender"
+            )
+        else:
+            intersectionLegend = False
+            fill_poly = _ax.fill_between(
+                _xGrid, 0, yIntersection, color="lightgray", edgecolor="lavender"
+            )
+
         fill_poly.set_hatch('xxx')
 
         if not feat_names is None:
