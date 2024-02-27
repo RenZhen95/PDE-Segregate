@@ -1,16 +1,15 @@
 import numpy as np
-import pandas as pd
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from scipy.stats import gaussian_kde
 
 class PDE_Segregate():
-    def __init__(self, X, y, xgrid=1000, bw_method="scott"):
+    def __init__(self, X, y, integration_method, delta=1000, bw_method="scott"):
         self.X = X
         self.y = y
 
-        self.compute_PDEoverlappingAreas(xgrid, bw_method)
+        self.compute_PDEoverlappingAreas(integration_method, delta, bw_method)
 
     def get_scores(self):
         """
@@ -29,7 +28,7 @@ class PDE_Segregate():
         return -1*self.overlappingAreas
 
 
-    def compute_PDEoverlappingAreas(self, xgrid, bw_method):
+    def compute_PDEoverlappingAreas(self, integrate, delta, bw_method):
         """
         Get the overlapping areas of the PDE of class-segregated groups.
         """
@@ -68,7 +67,7 @@ class PDE_Segregate():
         print("Computing the intersection area of each feature ... ")
         for feat_idx in tqdm(range(self.X.shape[1])):
             OA, kernels, lengths = self.compute_OA(
-                feat_idx, xgrid, bw_method
+                feat_idx, integrate, delta, bw_method
             )
             self.overlappingAreas[feat_idx] = OA
 
@@ -125,7 +124,7 @@ class PDE_Segregate():
 
         return inds_topFeatures
 
-    def compute_OA(self, feat_idx, xgrid, bw_method, return_series=False):
+    def compute_OA(self, feat_idx, integrate, delta, bw_method, return_series=False):
         """
         Compute the overlapping areas of the PDE of class-segregated groups
         for a given feature.
@@ -135,7 +134,7 @@ class PDE_Segregate():
         feat_idx : int
          - Index of the desired feature in the given dataset, X.
 
-        xgrid : int
+        delta : int
          - Number of cells in the x-grid
 
         bw_method : str, scalar or callable
@@ -211,16 +210,20 @@ class PDE_Segregate():
             time.sleep(10)
         else:
             # Initializing the x-axis grid
-            # XGrid = np.linspace(0, 1, max(1000, max(lengths)))
+            print(f"Delta: {delta}")
+            XGrid = np.linspace(0, 1, delta)
 
             yStack = []
             for k in kernels:
-                Y = np.reshape(k[1](xgrid).T, xgrid.shape)
+                Y = np.reshape(k[1](XGrid).T, delta)
                 yStack.append(Y)
 
             yIntersection = np.amin(yStack, axis=0)
-            # OA = np.trapz(yIntersection, XGrid)
-            OA = (yIntersection.sum())/xgrid
+
+            if integrate == "sum":
+                OA = (yIntersection.sum())/delta
+            elif integrate == "trapz":
+                OA = np.trapz(yIntersection, XGrid)
 
         if return_series:
             return OA, kernels, lengths, normalizedX
