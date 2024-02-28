@@ -3,18 +3,23 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from scipy.stats import gaussian_kde
+from joblib import Parallel, delayed
 
 class PDE_Segregate():
-    def __init__(self, X, y, integration_method, delta=1000, bw_method="scott"):
+    def __init__(
+            self, X, y, integration_method, delta=1000, bw_method="scott", n_jobs=1
+    ):
         self.X = X
         self.y = y
 
-        self.compute_PDEoverlappingAreas(integration_method, delta, bw_method)
-
+        self.compute_PDEoverlappingAreas(
+            integration_method, delta, bw_method, n_jobs
+        )
+ 
     def get_scores(self):
         """
         Get feature importance based on feature's ability to segregate the
-        PDEs of the class-segregated samples. Returns the negative overlapping
+        PDEs of the class-segregated samples.c Returns the negative overlapping
         areas of the PDEs, such that the lower the score (i.e. the more
         negative the area), the less important the feature.
 
@@ -28,7 +33,7 @@ class PDE_Segregate():
         return -1*self.overlappingAreas
 
 
-    def compute_PDEoverlappingAreas(self, integrate, delta, bw_method):
+    def compute_PDEoverlappingAreas(self, integrate, delta, bw_method, n_jobs):
         """
         Get the overlapping areas of the PDE of class-segregated groups.
         """
@@ -65,11 +70,20 @@ class PDE_Segregate():
 
         self.overlappingAreas = np.zeros((self.X.shape[1],))
         print("Computing the intersection area of each feature ... ")
-        for feat_idx in tqdm(range(self.X.shape[1])):
-            OA, kernels, lengths = self.compute_OA(
-                feat_idx, integrate, delta, bw_method
-            )
-            self.overlappingAreas[feat_idx] = OA
+
+        # Spreading over multiple threads
+        delayed_calls = [
+            delayed(
+                self.compute_OA
+            )(feat_idx, integrate, delta, bw_method) for feat_idx in range(self.X.shape[1])
+        ]
+        self.overlappingAreas = Parallel(n_jobs=n_jobs)(delayed_calls)
+        
+        # for feat_idx in tqdm(range(self.X.shape[1])):
+        #     OA, kernels, lengths = self.compute_OA(
+        #         feat_idx, integrate, delta, bw_method
+        #     )
+        #     self.overlappingAreas[feat_idx] = OA
 
     def get_topnFeatures(self, n):
         """
@@ -124,7 +138,7 @@ class PDE_Segregate():
 
         return inds_topFeatures
 
-    def compute_OA(self, feat_idx, integrate, delta, bw_method, return_series=False):
+    def compute_OA(self, feat_idx, integrate, delta, bw_method, only_areas=True, return_series=False):
         """
         Compute the overlapping areas of the PDE of class-segregated groups
         for a given feature.
@@ -141,6 +155,9 @@ class PDE_Segregate():
          - The method used to calculate the estimator bandwith. This can be
            'scott' and 'silverman', a scalar constant or a callable. For
            more details, see scipy.stats.gaussian_kde documentation.
+
+        only_areas : bool
+         - Option to only return the computed intersection areas.
 
         reture_series : bool
          - Option to return the centered series
@@ -225,10 +242,13 @@ class PDE_Segregate():
             elif integrate == "trapz":
                 OA = np.trapz(yIntersection, XGrid)
 
-        if return_series:
-            return OA, kernels, lengths, normalizedX
+        if only_areas:
+            return OA
         else:
-            return OA, kernels, lengths
+            if return_series:
+                return OA, kernels, lengths, normalizedX
+            else:
+                return OA, kernels, lengths
 
     def segregateX_y(self):
         """
@@ -251,7 +271,7 @@ class PDE_Segregate():
         Function to plot overlapping areas for a given feature.
         """
         OA, _kernels, _lengths, normalizedX = self.compute_OA(
-            feat_idx, return_series=True
+            feat_idx, only_areas=False, return_series=True
         )
 
         yStack = []
