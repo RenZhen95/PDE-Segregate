@@ -1,6 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+from itertools import combinations
 from collections import defaultdict
 from scipy.stats import gaussian_kde
 from joblib import Parallel, delayed
@@ -12,14 +13,25 @@ class PDE_Segregate():
         self.X = X
         self.y = y
 
-        self.compute_PDEoverlappingAreas(
+        self.compute_PDEintersectionAreas(
             integration_method, delta, bw_method, n_jobs
         )
+
+    def compute_PDEintersectionAreas(self, integrate, delta, bw_method, n_jobs):
+        """
+        Only useful for multi-class classification problems.
+
+        Gets the average of the pair-wise intersection areas of the PDE of
+        between the different class-segregated groups.
+        """
+        # Number of different combinations: nclass choose 2
+        pairwise_combinations = combinations(self.yLabels, 2)
+        
  
     def get_scores(self):
         """
         Get feature importance based on feature's ability to segregate the
-        PDEs of the class-segregated samples.c Returns the negative overlapping
+        PDEs of the class-segregated samples.c Returns the negative intersection
         areas of the PDEs, such that the lower the score (i.e. the more
         negative the area), the less important the feature.
 
@@ -30,12 +42,12 @@ class PDE_Segregate():
            of the areas below all the probability density estimate curves of
            each feature.
         """
-        return -1*self.overlappingAreas
+        return -1*self.intersectionAreas
 
 
-    def compute_PDEoverlappingAreas(self, integrate, delta, bw_method, n_jobs):
+    def compute_PDEintersectionAreas(self, integrate, delta, bw_method, n_jobs):
         """
-        Get the overlapping areas of the PDE of class-segregated groups.
+        Get the intersection areas of the PDE of class-segregated groups.
         """
         # Grouping the samples according to unique y label
         self.y_segregatedGroup = self.segregateX_y()
@@ -68,7 +80,7 @@ class PDE_Segregate():
         self.yLabels = list(self.y_segregatedGroup.keys())
         self.yLabels.sort()
 
-        self.overlappingAreas = np.zeros((self.X.shape[1],))
+        self.intersectionAreas = np.zeros((self.X.shape[1],))
         print("Computing the intersection area of each feature ... ")
 
         # Spreading over multiple threads
@@ -77,13 +89,13 @@ class PDE_Segregate():
                 self.compute_OA
             )(feat_idx, integrate, delta, bw_method) for feat_idx in range(self.X.shape[1])
         ]
-        self.overlappingAreas = Parallel(n_jobs=n_jobs)(delayed_calls)
+        self.intersectionAreas = Parallel(n_jobs=n_jobs)(delayed_calls)
         
         # for feat_idx in tqdm(range(self.X.shape[1])):
         #     OA, kernels, lengths = self.compute_OA(
         #         feat_idx, integrate, delta, bw_method
         #     )
-        #     self.overlappingAreas[feat_idx] = OA
+        #     self.intersectionAreas[feat_idx] = OA
 
     def get_topnFeatures(self, n):
         """
@@ -100,7 +112,7 @@ class PDE_Segregate():
          - List of top n features, starting from the most to least important
            features.
         """
-        res_tmp = self.overlappingAreas
+        res_tmp = self.intersectionAreas
         res_tmpSorted = np.sort(res_tmp)
 
         inds_topFeatures = []
@@ -116,7 +128,7 @@ class PDE_Segregate():
 
             sel_inds = np.where(res_tmp==i)[0]
 
-            # Dealing with overlapping areas, which multiple features
+            # Dealing with intersection areas, which multiple features
             # share (e.g. 0.0)
             if len(sel_inds) == 1:
                 inds_topFeatures.append(sel_inds[0])
@@ -124,7 +136,7 @@ class PDE_Segregate():
             else:
                 print(
                     f"The following {len(sel_inds)} features:\n{sel_inds}" +
-                    "\nhave the same computed overlapping intersection areas: " +
+                    "\nhave the same computed intersection intersection areas: " +
                     f"{i}"
                 )
                 for ind in sel_inds:
@@ -140,7 +152,7 @@ class PDE_Segregate():
 
     def compute_OA(self, feat_idx, integrate, delta, bw_method, only_areas=True, return_series=False):
         """
-        Compute the overlapping areas of the PDE of class-segregated groups
+        Compute the intersection areas of the PDE of class-segregated groups
         for a given feature.
 
         Parameters
@@ -165,7 +177,7 @@ class PDE_Segregate():
         Returns
         -------
         OA : float
-         - Computed overlapping region of the PDEs.
+         - Computed intersection region of the PDEs.
 
         kernels : list
          - List of kernels containing kernel density estimator of each class.
@@ -221,7 +233,7 @@ class PDE_Segregate():
             print(
                 f"\nThe feature (idx:{feat_idx}) has LESS than two feature groups with " +
                 "non-zero S.D and thus not suitable for this feature selection method. " +
-                "Overlapping area of PDE will simply be assigned a value of 10.0"
+                "Intersection area of PDE will simply be assigned a value of 10.0"
             )
             OA = 10.0
             time.sleep(10)
@@ -268,7 +280,7 @@ class PDE_Segregate():
             legend=False, _ax=None
     ):
         """
-        Function to plot overlapping areas for a given feature.
+        Function to plot intersection areas for a given feature.
         """
         OA, _kernels, _lengths, normalizedX = self.compute_OA(
             feat_idx, only_areas=False, return_series=True
