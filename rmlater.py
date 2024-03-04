@@ -52,16 +52,18 @@ elapsed_times_perDS = defaultdict()
 dataset = datasets_dict["geneExpressionCancerRNA"]
 
 X = dataset['X']
-X = X[:, 0:20]
 y = dataset['y']
 y_mapper = dataset['y_mapper']
 
 # Proposed algorithm
 # Overlapping Areas of PDEs
 pdeSegregate = PDE_Segregate(
-    X, y, "trapz", delta=100, bw_method="scott", pairwise=True, n_jobs=-1
+    X, y, "trapz", delta=1000, bw_method="scott", pairwise=False, n_jobs=-1
 )
 pdeSegregate.fit()
-print(pdeSegregate.get_scores())
+inds_topFeatures = pdeSegregate.get_topnFeatures(100)
+
+with open("cancergeneRNA_top100Features.pkl", "wb") as handle:
+    pickle.dump(inds_topFeatures, handle)
 
 sys.exit(0)

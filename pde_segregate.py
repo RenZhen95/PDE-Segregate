@@ -91,9 +91,10 @@ class PDE_Segregate():
                     self.compute_intersectionArea
                 )(feat_idx, self.pairwise) for feat_idx in range(self.X.shape[1])
             ]
-            self.intersectionAreas = Parallel(n_jobs=self.n_jobs)(
+            intersectionAreas = Parallel(n_jobs=self.n_jobs)(
                 delayed_calls_intersectionArea
             )
+            self.intersectionAreas = np.array(intersectionAreas)
 
         # Computing pairwise intersection areas
         else:
@@ -112,7 +113,7 @@ class PDE_Segregate():
                 cStack.append(c_intersection)
 
             cStack = np.array(cStack)
-            self.mean_of_pairwiseIntersectionAreas = np.mean(cStack, axis=0)
+            self.intersectionAreas = np.mean(cStack, axis=0)
 
     def compute_intersectionArea(self, feat_idx, pairwise):
         """
@@ -133,6 +134,7 @@ class PDE_Segregate():
          - Computed intersection area of the PDEs.
         """
         yStack = []
+
         if not pairwise:
             for k in self.feature_kernels[feat_idx]:
                 Y = np.reshape(k[1](self.XGrid).T, self.delta)
@@ -145,9 +147,9 @@ class PDE_Segregate():
             k1 = self.feature_kernels[feat_idx][pairwise[1]]
             Y1 = np.reshape(k1[1](self.XGrid).T, self.delta)
             yStack.append(Y1)
-        
+
         yIntersection = np.amin(yStack, axis=0)
-        
+
         if self.integration_method == "sum":
             OA = (yIntersection.sum())/delta
         elif self.integration_method == "trapz":
@@ -160,7 +162,7 @@ class PDE_Segregate():
 
         return OA
 
-    def construct_kernel(self, feat_idx, return_series=False):
+    def construct_kernel(self, feat_idx):
         """
         Construct the kernel density estimator of all the class-segregated groups
         for a given feature.
@@ -170,48 +172,60 @@ class PDE_Segregate():
         feat_idx : int
          - Index of the desired feature in the given dataset, X.
 
-        reture_series : bool
-         - Option to return the centered series
-
         Returns
         -------
         kernels : list
          - Tuple element of (class, kernel).
 
-        normalizedX : numpy.array
-         - Array of normalized feature vector.
         """
         kernels = []
-        normalizedX = defaultdict()
+        normalizedX_dict = self.normalize_feature_vector(feat_idx)
 
+        for y in self.yLabels:
+            kernel = gaussian_kde(normalizedX_dict[y], self.bw_method)
+            kernels.append((y, kernel))
+
+        return kernels
+
+    def normalize_feature_vector(self, feat_idx):
+        """
+        Sub-routine to normalize each feature vector, then return a dictionary
+        of each normalized feature vector, segregated by class.
+
+        Parameters
+        ----------
+        feat_idx : int
+         - Index of the desired feature in the given dataset, X.
+
+        Returns
+        -------
+        feature_vector_dict : defaultdict
+         - Dictionary containing the normalized feature vector, segregatad per
+           class
+        """
         # Parameters to "center" the series
         minVal = self.X[:, feat_idx].min()
         maxValCentered = (self.X[:, feat_idx] - minVal).max()
 
+        feature_vector_dict = defaultdict()
+
         for y in self.yLabels:
-            X_feat_idx = self.y_segregatedGroup[y][:, feat_idx]
+            feature_vector_perClass = self.y_segregatedGroup[y][:, feat_idx]
 
             # Centering the series
             # 1. Subtract series with series.min()
             # 2. Divide series by its max
-            X_feat_idxNormalized = X_feat_idx - minVal
-            X_feat_idxNormalized = X_feat_idxNormalized / maxValCentered
+            normalized_vector = feature_vector_perClass - minVal
+            normalized_vector = normalized_vector / maxValCentered
 
             # If X has a standard deviation of zero, we will perturb just
             # the last element to allow for scipy to carry out a Cholesky
             # Decomposition on the variance matrix
-            X_feat_idxNormalized[-1] += 1e-15 # adding 'zero'
+            normalized_vector[-1] += 1e-15 # adding 'zero'
 
-            kernel = gaussian_kde(X_feat_idxNormalized, self.bw_method)
-            kernels.append((y, kernel))
+            feature_vector_dict[y] = normalized_vector
 
-            if return_series:
-                normalizedX[y] = X_feat_idxNormalized
-
-        if not return_series:
-            return kernels
-        else:
-            return kernels, normalizedX
+        return feature_vector_dict
 
     def segregateX_y(self):
         """
@@ -239,10 +253,7 @@ class PDE_Segregate():
            of the areas below all the probability density estimate curves of
            each feature.
         """
-        if not self.pairwise:
-            return -1*np.array(self.intersectionAreas)
-        else:
-            return -1*self.mean_of_pairwiseIntersectionAreas
+        return -1 * self.intersectionAreas
 
     def get_topnFeatures(self, n):
         """
@@ -259,7 +270,7 @@ class PDE_Segregate():
          - List of top n features, starting from the most to least important
            features.
         """
-        res_tmp = self.intersectionAreas
+        res_tmp = self.intersectionAreas.copy()
         res_tmpSorted = np.sort(res_tmp)
 
         inds_topFeatures = []
@@ -270,8 +281,6 @@ class PDE_Segregate():
 
         for i in res_tmpSorted:
             OAs.append(i)
-            if i in OAs:
-                pass
 
             sel_inds = np.where(res_tmp==i)[0]
 
@@ -305,32 +314,31 @@ class PDE_Segregate():
         """
         Function to plot intersection areas for a given feature.
         """
-        OA, _kernels, normalizedX = self.compute_OA(
-            feat_idx, only_areas=False, return_series=True
-        )
+        normalizedX_dict = self.normalize_feature_vector(feat_idx)
+
+        OA = self.compute_intersectionAreas(feat_idx, False)
 
         yStack = []
-        _xGrid = np.linspace(0, 1, self.delta)
 
         if _ax is None:
             fig, _ax = plt.subplots(1,1)
 
         linecolors = []
-        for k in _kernels:
-            Y = np.reshape(k[1](_xGrid).T, self.delta)
+        for k in self.feature_kernels[feat_idx]:
+            Y = np.reshape(k[1](self.XGrid).T, self.delta)
             yStack.append(Y)
 
             # Plotting the probabilty density estimate per class
-            p = _ax.plot(_xGrid, Y, label=k[0])
+            p = _ax.plot(self.XGrid, Y, label=k[0])
             # Get line colors
             linecolors.append(p[0].get_color())
 
         # Plotting the data samples
         if show_samples:
             yMax = _ax.get_ylim()[1]
-            for i, k in enumerate(_kernels):
+            for i, k in enumerate(self.feature_kernels):
                 _ax.vlines(
-                    normalizedX[k[0]], 0.0, 0.03*yMax,
+                    normalizedX_dict[k[0]], 0.0, 0.03*yMax,
                     color=linecolors[i], alpha=0.7
                 )
 
@@ -340,13 +348,13 @@ class PDE_Segregate():
         if legend == "intersection":
             intersectionLegend = True
             fill_poly = _ax.fill_between(
-                _xGrid, 0, yIntersection, label=f'Intersection: {round(OA, 3)}',
+                self.XGrid, 0, yIntersection, label=f'Intersection: {round(OA, 3)}',
                 color="lightgray", edgecolor="lavender"
             )
         else:
             intersectionLegend = False
             fill_poly = _ax.fill_between(
-                _xGrid, 0, yIntersection, color="lightgray", edgecolor="lavender"
+                self.XGrid, 0, yIntersection, color="lightgray", edgecolor="lavender"
             )
 
         fill_poly.set_hatch('xxx')
