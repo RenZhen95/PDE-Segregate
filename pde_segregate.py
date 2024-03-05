@@ -77,23 +77,24 @@ class PDE_Segregate():
         Get the intersection areas of the PDE of class-segregated groups.
         """
         # Construct kerndel density estimator per class for every feature
-        delayed_calls = [
+        delayed_calls = (
             delayed(
                 self.construct_kernel
             )(feat_idx) for feat_idx in range(self.X.shape[1])
-        ]
+        )
         self.feature_kernels = Parallel(n_jobs=self.n_jobs)(delayed_calls)
 
         # Computing the intersection area among all classes
         if not self.pairwise:
-            delayed_calls_intersectionArea = [
+            delayed_calls_intersectionArea = (
                 delayed(
                     self.compute_intersectionArea
                 )(feat_idx, self.pairwise) for feat_idx in range(self.X.shape[1])
-            ]
-            intersectionAreas = Parallel(n_jobs=self.n_jobs)(
-                delayed_calls_intersectionArea
             )
+            intersectionAreas = Parallel(
+                n_jobs=self.n_jobs, backend="threading"
+            )(delayed_calls_intersectionArea)
+
             self.intersectionAreas = np.array(intersectionAreas)
 
         # Computing pairwise intersection areas
@@ -102,14 +103,15 @@ class PDE_Segregate():
             pairwise_combinations = combinations(self.yLabels, 2)
             cStack = []
             for c in pairwise_combinations:
-                delayed_calls_pairwiseIntersectionArea = [
+                delayed_calls_pairwiseIntersectionArea = (
                     delayed(
                         self.compute_intersectionArea
                     )(feat_idx, c) for feat_idx in range(self.X.shape[1])
-                ]
-                c_intersection = Parallel(n_jobs=self.n_jobs)(
-                    delayed_calls_pairwiseIntersectionArea
                 )
+                c_intersection = Parallel(
+                    n_jobs=self.n_jobs, backend="threading"
+                )(delayed_calls_pairwiseIntersectionArea)
+
                 cStack.append(c_intersection)
 
             cStack = np.array(cStack)
