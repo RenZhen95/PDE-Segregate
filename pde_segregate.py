@@ -8,7 +8,7 @@ from joblib import Parallel, delayed
 
 class PDE_Segregate():
     def __init__(
-            self, X, y, integration_method="trapz", delta=1000, bw_method="scott",
+            self, X, y, integration_method="trapz", delta=500, bw_method="scott",
             pairwise=False, n_jobs=1
     ):
         """
@@ -83,6 +83,7 @@ class PDE_Segregate():
             )(feat_idx) for feat_idx in range(self.X.shape[1])
         )
         self.feature_kernels = Parallel(n_jobs=self.n_jobs)(delayed_calls)
+        print("Kernels constructed ... ")
 
         # Computing the intersection area among all classes
         if not self.pairwise:
@@ -92,7 +93,7 @@ class PDE_Segregate():
                 )(feat_idx, self.pairwise) for feat_idx in range(self.X.shape[1])
             )
             intersectionAreas = Parallel(
-                n_jobs=self.n_jobs, backend="threading"
+                n_jobs=self.n_jobs, backend="threading", verbose=1
             )(delayed_calls_intersectionArea)
 
             self.intersectionAreas = np.array(intersectionAreas)
@@ -109,7 +110,7 @@ class PDE_Segregate():
                     )(feat_idx, c) for feat_idx in range(self.X.shape[1])
                 )
                 c_intersection = Parallel(
-                    n_jobs=self.n_jobs, backend="threading"
+                    n_jobs=self.n_jobs, backend="threading", verbose=1
                 )(delayed_calls_pairwiseIntersectionArea)
 
                 cStack.append(c_intersection)
@@ -138,16 +139,13 @@ class PDE_Segregate():
         yStack = []
 
         if not pairwise:
-            for k in self.feature_kernels[feat_idx]:
-                Y = np.reshape(k[1](self.XGrid).T, self.delta)
+            for Y in self.feature_kernels[feat_idx].values():
                 yStack.append(Y)
         else:
-            k0 = self.feature_kernels[feat_idx][pairwise[0]]
-            Y0 = np.reshape(k0[1](self.XGrid).T, self.delta)
+            Y0 = self.feature_kernels[feat_idx][pairwise[0]]
             yStack.append(Y0)
 
-            k1 = self.feature_kernels[feat_idx][pairwise[1]]
-            Y1 = np.reshape(k1[1](self.XGrid).T, self.delta)
+            Y1 = self.feature_kernels[feat_idx][pairwise[1]]
             yStack.append(Y1)
 
         yIntersection = np.amin(yStack, axis=0)
@@ -176,16 +174,17 @@ class PDE_Segregate():
 
         Returns
         -------
-        kernels : list
-         - Tuple element of (class, kernel).
+        kernels : dict
+         - dict[class]: kernel.
 
         """
-        kernels = []
+        kernels = defaultdict()
         normalizedX_dict = self.normalize_feature_vector(feat_idx)
 
         for y in self.yLabels:
             kernel = gaussian_kde(normalizedX_dict[y], self.bw_method)
-            kernels.append((y, kernel))
+            pde = np.reshape(kernel(self.XGrid).T, self.delta)
+            kernels[y] = pde
 
         return kernels
 
@@ -273,17 +272,13 @@ class PDE_Segregate():
            features.
         """
         res_tmp = self.intersectionAreas.copy()
-        res_tmpSorted = np.sort(res_tmp)
+        res_tmpSorted = np.sort(res_tmp) # sorts smallest to largest
 
         inds_topFeatures = []
 
         counter = 1
 
-        OAs = []
-
         for i in res_tmpSorted:
-            OAs.append(i)
-
             sel_inds = np.where(res_tmp==i)[0]
 
             # Dealing with intersection areas, which multiple features
@@ -326,8 +321,8 @@ class PDE_Segregate():
             fig, _ax = plt.subplots(1,1)
 
         linecolors = []
-        for k in self.feature_kernels[feat_idx]:
-            Y = np.reshape(k[1](self.XGrid).T, self.delta)
+        for k in self.feature_kernels[feat_idx].values():
+            Y = np.reshape(k(self.XGrid).T, self.delta)
             yStack.append(Y)
 
             # Plotting the probabilty density estimate per class

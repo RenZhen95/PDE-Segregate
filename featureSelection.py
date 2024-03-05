@@ -65,8 +65,6 @@ for f in os.scandir(fsResults_matlab_folder):
 # Carrying out feature selection for each dataset
 dataset_inds_topFeatures = defaultdict()
 
-inds_OAallFeatures = defaultdict()
-
 elapsed_times_perDS = defaultdict()
 
 for dataset in datasets_dict.keys():
@@ -108,13 +106,6 @@ for dataset in datasets_dict.keys():
     tFT_stop = process_time()
     tFT = tFT_stop - tFT_start
 
-    # ANOVA eta-squared
-    tEtaSq_start = process_time()
-    anovaEta2 = anova(X, y)
-    etaSquared = anovaEta2.EtaSq
-    tEtaSq_stop = process_time()
-    tEtaSq = tEtaSq_stop - tEtaSq_start
-
     # Random forest ensemble data mining to increase information gain/reduce impurity
     tRF_start = process_time()
     rfGini = RandomForestClassifier(
@@ -127,16 +118,25 @@ for dataset in datasets_dict.keys():
     tRF = tRF_stop - tRF_start
 
     # Proposed algorithm
-    # Overlapping Areas of PDEs
-    tScott_start = process_time()
-    pdeSegregate_scott = PDE_Segregate(X, y, bw_method="scott")
-    tScott_stop = process_time()
-    tScott = tScott_stop - tScott_start
+    # Overlapping Areas of PDEs (total)
+    tTotal_start = process_time()
+    pdeSegregate_total = PDE_Segregate(
+        X, y, integration_method="trapz", delta=1000, bw_method="scott",
+        pairwise=False, n_jobs=-1
+    )
+    pdeSegregate_total.fit()
+    tTotal_stop = process_time()
+    tTotal = tTotal_stop - tTotal_start
 
-    tSilverman_start = process_time()
-    pdeSegregate_silverman = PDE_Segregate(X, y, bw_method="silverman")
-    tSilverman_stop = process_time()
-    tSilverman = tSilverman_stop - tSilverman_start
+    # Overlapping Areas of PDEs (pairwise)
+    tPW_start = process_time()
+    pdeSegregate_pw = PDE_Segregate(
+        X, y, integration_method="trapz", delta=1000, bw_method="scott",
+        pairwise=True, n_jobs=-1
+    )
+    pdeSegregate_pw.fit()
+    tPW_stop = process_time()
+    tPW = tPW_stop - tPW_start
 
     # === === === === === === ===
     # GETTING TOP N FEATURES
@@ -155,19 +155,16 @@ for dataset in datasets_dict.keys():
     inds_topFeatures_MI = get_indsTopnFeatures(
         resMI, nRetainedFeatures
     )
-    inds_topFeatures_FT = get_indsTopnFeatures(
-        resFT_stat, nRetainedFeatures
-    )
-    inds_topFeatures_EtaSq = get_indsTopnFeatures(
-        etaSquared, nRetainedFeatures
-    )
     inds_topFeatures_RFGini = get_indsTopnFeatures(
         rfGini_featureImportance, nRetainedFeatures
     )
-    inds_topFeatures_OA_scott = pdeSegregate_scott.get_topnFeatures(
+    inds_topFeatures_FT = get_indsTopnFeatures(
+        resFT_stat, nRetainedFeatures
+    )
+    inds_topFeatures_OAtotal = pdeSegregate_total.get_topnFeatures(
         nRetainedFeatures
     )
-    inds_topFeatures_OA_silverman = pdeSegregate_silverman.get_topnFeatures(
+    inds_topFeatures_OApw = pdeSegregate_pw.get_topnFeatures(
         nRetainedFeatures
     )
 
@@ -177,11 +174,10 @@ for dataset in datasets_dict.keys():
         "RlfI": inds_topFeatures_RlfI,
         "RlfLM": inds_topFeatures_RlfLM,
         "MI": inds_topFeatures_MI,
-        "FT": inds_topFeatures_FT,
-        "EtaSq": inds_topFeatures_EtaSq,
         "RFGini": inds_topFeatures_RFGini,
-        "OAscott": inds_topFeatures_OA_scott,
-        "OAsilverman": inds_topFeatures_OA_silverman
+        "FT": inds_topFeatures_FT,
+        "OAtotal": inds_topFeatures_OAtotal,
+        "OApw": inds_topFeatures_OApw
     }
     dataset_inds_topFeatures[dataset] = inds_topFeatures
 
@@ -191,11 +187,10 @@ for dataset in datasets_dict.keys():
         "RlfF": tRlfF,
         "MSurf": tMSurf,
         "MI": tMI,
-        "FT": tFT,
-        "EtaSq": tEtaSq,
         "RFGini": tRF,
-        "OAscott": tScott,
-        "OAsilverman": tSilverman
+        "FT": tFT,
+        "OAtotal": tTotal,
+        "OApw": tPW
     }
     elapsed_times_perDS[dataset] = elapsed_times
 

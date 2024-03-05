@@ -44,9 +44,6 @@ for ds in topFeatures.keys():
 
     for fs in topFeatures[ds].keys():
         print(f" - Feature selection scheme: {fs}")
-        if fs in ["RFEtry", "OAsilverman", "EtaSq"]:
-            print("Skipping over RFEtry ...")
-            continue
 
         for n_ in nRetainedFeatures:
             print(f" - Number of retained features: {n_}")
