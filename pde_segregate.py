@@ -8,26 +8,239 @@ from joblib import Parallel, delayed
 
 class PDE_Segregate():
     def __init__(
-            self, X, y, integration_method, delta=1000, bw_method="scott", n_jobs=1
+            self, X, y, integration_method="trapz", delta=1000, bw_method="scott",
+            pairwise=False, n_jobs=1
     ):
+        """
+        Parameters
+        ----------
+        integrate : str
+         - Integration method.
+
+           Available options include 'numpy.trapz' (default) and 'sum'.
+
+        delta : int
+         - Number of cells in the x-grid
+
+        bw_method : str, scalar or callable
+         - The method used to calculate the estimator bandwith. This can be
+           'scott' and 'silverman', a scalar constant or a callable. For
+           more details, see scipy.stats.gaussian_kde documentation.
+
+        pairwise : bool
+         - Option to either compute the intersection area of all the different
+           classes OR the mean of pairwise intersection areas.
+
+        n_jobs : int
+         - Number of processors to use. -1 to use all available processors.
+        """
         self.X = X
         self.y = y
+        self.integration_method = integration_method
+        self.delta = delta
+        self.bw_method = bw_method
+        self.pairwise = pairwise
+        self.n_jobs = n_jobs
 
-        self.compute_PDEintersectionAreas(
-            integration_method, delta, bw_method, n_jobs
+        # Initializing the x-axis grid
+        self.XGrid = np.linspace(0, 1, self.delta)
+
+        # Grouping the samples according to unique y label
+        self.y_segregatedGroup = self.segregateX_y()
+
+        # Do not allow user to use PDE-Segregate, when class has only one sample
+        yToRemove = []
+        for y in self.y_segregatedGroup.keys():
+            if self.y_segregatedGroup[y].shape[0] == 1:
+                yToRemove.append(y)
+                print(
+                    f"---\ny={y} sub-dataset has only 1 sample and will be " +
+                    "excluded ... "
+                )
+        #  - removing class populations with only one sample
+        if len(yToRemove) != 0:
+            for y in yToRemove:
+                self.y_segregatedGroup.pop(y, None)
+        #  - abort if all remaining samples belong to only one single class
+        if len(self.y_segregatedGroup) == 1:
+            raise ValueError(
+                "There's only one target label, " +
+                f"y={self.y_segregatedGroup.keys()}"
+            )
+
+        # Initializing a list of available classes
+        self.yLabels = list(self.y_segregatedGroup.keys())
+        self.yLabels.sort()
+
+    def fit(self):
+        """
+        Get the intersection areas of the PDE of class-segregated groups.
+        """
+        # Construct kerndel density estimator per class for every feature
+        delayed_calls = (
+            delayed(
+                self.construct_kernel
+            )(feat_idx) for feat_idx in range(self.X.shape[1])
         )
+        self.feature_kernels = Parallel(n_jobs=self.n_jobs)(delayed_calls)
 
-    def compute_PDEintersectionAreas(self, integrate, delta, bw_method, n_jobs):
-        """
-        Only useful for multi-class classification problems.
+        # Computing the intersection area among all classes
+        if not self.pairwise:
+            delayed_calls_intersectionArea = (
+                delayed(
+                    self.compute_intersectionArea
+                )(feat_idx, self.pairwise) for feat_idx in range(self.X.shape[1])
+            )
+            intersectionAreas = Parallel(
+                n_jobs=self.n_jobs, backend="threading"
+            )(delayed_calls_intersectionArea)
 
-        Gets the average of the pair-wise intersection areas of the PDE of
-        between the different class-segregated groups.
+            self.intersectionAreas = np.array(intersectionAreas)
+
+        # Computing pairwise intersection areas
+        else:
+            # Number of different combinations: nclass choose 2
+            pairwise_combinations = combinations(self.yLabels, 2)
+            cStack = []
+            for c in pairwise_combinations:
+                delayed_calls_pairwiseIntersectionArea = (
+                    delayed(
+                        self.compute_intersectionArea
+                    )(feat_idx, c) for feat_idx in range(self.X.shape[1])
+                )
+                c_intersection = Parallel(
+                    n_jobs=self.n_jobs, backend="threading"
+                )(delayed_calls_pairwiseIntersectionArea)
+
+                cStack.append(c_intersection)
+
+            cStack = np.array(cStack)
+            self.intersectionAreas = np.mean(cStack, axis=0)
+
+    def compute_intersectionArea(self, feat_idx, pairwise):
         """
-        # Number of different combinations: nclass choose 2
-        pairwise_combinations = combinations(self.yLabels, 2)
-        
- 
+        Compute intersection area between estimated PDEs.
+
+        Parameters
+        ----------
+        feat_idx : int
+         - Index of the desired feature in the given dataset, X.
+
+        pairwise : False or tuple
+         - If false, then compute intersection area of all classes, else a
+        pair of indices indicating which pair of classes to compare.
+
+        Returns
+        -------
+        OA : float
+         - Computed intersection area of the PDEs.
+        """
+        yStack = []
+
+        if not pairwise:
+            for k in self.feature_kernels[feat_idx]:
+                Y = np.reshape(k[1](self.XGrid).T, self.delta)
+                yStack.append(Y)
+        else:
+            k0 = self.feature_kernels[feat_idx][pairwise[0]]
+            Y0 = np.reshape(k0[1](self.XGrid).T, self.delta)
+            yStack.append(Y0)
+
+            k1 = self.feature_kernels[feat_idx][pairwise[1]]
+            Y1 = np.reshape(k1[1](self.XGrid).T, self.delta)
+            yStack.append(Y1)
+
+        yIntersection = np.amin(yStack, axis=0)
+
+        if self.integration_method == "sum":
+            OA = (yIntersection.sum())/delta
+        elif self.integration_method == "trapz":
+            OA = np.trapz(yIntersection, self.XGrid)
+        else:
+            raise ValueError(
+                "Possible options for <integration_method>: " +
+                "('trapz', 'sum')"
+            )
+
+        return OA
+
+    def construct_kernel(self, feat_idx):
+        """
+        Construct the kernel density estimator of all the class-segregated groups
+        for a given feature.
+
+        Parameters
+        ----------
+        feat_idx : int
+         - Index of the desired feature in the given dataset, X.
+
+        Returns
+        -------
+        kernels : list
+         - Tuple element of (class, kernel).
+
+        """
+        kernels = []
+        normalizedX_dict = self.normalize_feature_vector(feat_idx)
+
+        for y in self.yLabels:
+            kernel = gaussian_kde(normalizedX_dict[y], self.bw_method)
+            kernels.append((y, kernel))
+
+        return kernels
+
+    def normalize_feature_vector(self, feat_idx):
+        """
+        Sub-routine to normalize each feature vector, then return a dictionary
+        of each normalized feature vector, segregated by class.
+
+        Parameters
+        ----------
+        feat_idx : int
+         - Index of the desired feature in the given dataset, X.
+
+        Returns
+        -------
+        feature_vector_dict : defaultdict
+         - Dictionary containing the normalized feature vector, segregatad per
+           class
+        """
+        # Parameters to "center" the series
+        minVal = self.X[:, feat_idx].min()
+        maxValCentered = (self.X[:, feat_idx] - minVal).max()
+
+        feature_vector_dict = defaultdict()
+
+        for y in self.yLabels:
+            feature_vector_perClass = self.y_segregatedGroup[y][:, feat_idx]
+
+            # Centering the series
+            # 1. Subtract series with series.min()
+            # 2. Divide series by its max
+            normalized_vector = feature_vector_perClass - minVal
+            normalized_vector = normalized_vector / maxValCentered
+
+            # If X has a standard deviation of zero, we will perturb just
+            # the last element to allow for scipy to carry out a Cholesky
+            # Decomposition on the variance matrix
+            normalized_vector[-1] += 1e-15 # adding 'zero'
+
+            feature_vector_dict[y] = normalized_vector
+
+        return feature_vector_dict
+
+    def segregateX_y(self):
+        """
+        Routine to segregate X samples into unique y groups
+        """
+        unique_y = list(set(self.y))
+
+        _subX = defaultdict()
+        for uy in unique_y:
+            _subX[uy] = self.X[np.where(self.y==uy)[0], :]
+
+        return _subX
+
     def get_scores(self):
         """
         Get feature importance based on feature's ability to segregate the
@@ -42,60 +255,7 @@ class PDE_Segregate():
            of the areas below all the probability density estimate curves of
            each feature.
         """
-        return -1*self.intersectionAreas
-
-
-    def compute_PDEintersectionAreas(self, integrate, delta, bw_method, n_jobs):
-        """
-        Get the intersection areas of the PDE of class-segregated groups.
-        """
-        # Grouping the samples according to unique y label
-        self.y_segregatedGroup = self.segregateX_y()
-
-        # You can't build a distribution function with only one sample
-        yToRemove = []
-
-        for y in self.y_segregatedGroup.keys():
-            if self.y_segregatedGroup[y].shape[0] < 2:
-                yToRemove.append(y)
-                print(
-                    f"---\ny={y} sub-dataset has only 1 sample and will be " +
-                    "excluded ... "
-                )
-
-        # Removing features that have class groups with only two samples
-        if len(yToRemove) != 0:
-            for y in yToRemove:
-                self.y_segregatedGroup.pop(y, None)
-
-        # Removing features that only exhibit one target group after
-        # pre-processing
-        if len(self.y_segregatedGroup) == 1:
-            raise ValueError(
-                "There's only one target label, " +
-                f"y={self.y_segregatedGroup.keys()}"
-            )
-
-        # Computing the overlap area among classes
-        self.yLabels = list(self.y_segregatedGroup.keys())
-        self.yLabels.sort()
-
-        self.intersectionAreas = np.zeros((self.X.shape[1],))
-        print("Computing the intersection area of each feature ... ")
-
-        # Spreading over multiple threads
-        delayed_calls = [
-            delayed(
-                self.compute_OA
-            )(feat_idx, integrate, delta, bw_method) for feat_idx in range(self.X.shape[1])
-        ]
-        self.intersectionAreas = Parallel(n_jobs=n_jobs)(delayed_calls)
-        
-        # for feat_idx in tqdm(range(self.X.shape[1])):
-        #     OA, kernels, lengths = self.compute_OA(
-        #         feat_idx, integrate, delta, bw_method
-        #     )
-        #     self.intersectionAreas[feat_idx] = OA
+        return -1 * self.intersectionAreas
 
     def get_topnFeatures(self, n):
         """
@@ -112,7 +272,7 @@ class PDE_Segregate():
          - List of top n features, starting from the most to least important
            features.
         """
-        res_tmp = self.intersectionAreas
+        res_tmp = self.intersectionAreas.copy()
         res_tmpSorted = np.sort(res_tmp)
 
         inds_topFeatures = []
@@ -123,8 +283,6 @@ class PDE_Segregate():
 
         for i in res_tmpSorted:
             OAs.append(i)
-            if i in OAs:
-                pass
 
             sel_inds = np.where(res_tmp==i)[0]
 
@@ -150,130 +308,6 @@ class PDE_Segregate():
 
         return inds_topFeatures
 
-    def compute_OA(self, feat_idx, integrate, delta, bw_method, only_areas=True, return_series=False):
-        """
-        Compute the intersection areas of the PDE of class-segregated groups
-        for a given feature.
-
-        Parameters
-        ----------
-        feat_idx : int
-         - Index of the desired feature in the given dataset, X.
-
-        delta : int
-         - Number of cells in the x-grid
-
-        bw_method : str, scalar or callable
-         - The method used to calculate the estimator bandwith. This can be
-           'scott' and 'silverman', a scalar constant or a callable. For
-           more details, see scipy.stats.gaussian_kde documentation.
-
-        only_areas : bool
-         - Option to only return the computed intersection areas.
-
-        reture_series : bool
-         - Option to return the centered series
-
-        Returns
-        -------
-        OA : float
-         - Computed intersection region of the PDEs.
-
-        kernels : list
-         - List of kernels containing kernel density estimator of each class.
-
-        lengths : list
-         - List of sample size of each class.
-
-        normalizedX : numpy.array
-         - Array of normalized feature vector.
-        """
-        lengths = []
-        kernels = []
-
-        for idx, y in enumerate(self.yLabels):
-            if idx == 0:
-                total_y = self.y_segregatedGroup[y][:, feat_idx]
-            else:
-                total_y = np.append(
-                    total_y, self.y_segregatedGroup[y][:, feat_idx]
-                )
-
-        # Parameters to "center" the series
-        minVal = total_y.min()
-        maxValCentered = (total_y - minVal).max()
-
-        normalizedX = defaultdict()
-
-        for y in self.yLabels:
-            X_feat_idx = self.y_segregatedGroup[y][:, feat_idx]
-
-            # Centering the series
-            # 1. Subtract series with series.min()
-            # 2. Divide series by its max
-            X_feat_idxNormalized = X_feat_idx - minVal
-            X_feat_idxNormalized = X_feat_idxNormalized / maxValCentered
-
-            lengths.append(X_feat_idxNormalized.shape[0])
-
-            # If X has a standard deviation of zero, we will perturb just
-            # the last element to allow for scipy to carry out a Cholesky
-            # Decomposition on the variance matrix
-            X_feat_idxNormalized[-1] += 1e-15 # adding 'zero'
-
-            kernel = gaussian_kde(X_feat_idxNormalized, bw_method)
-            kernels.append((y, kernel))
-
-            if return_series:
-                normalizedX[y] = X_feat_idxNormalized
-
-        # There must be AT LEAST two target groups with non-zero S.D, or this feature
-        # ranking method just makes no sense
-        if len(lengths) < 2:
-            print(
-                f"\nThe feature (idx:{feat_idx}) has LESS than two feature groups with " +
-                "non-zero S.D and thus not suitable for this feature selection method. " +
-                "Intersection area of PDE will simply be assigned a value of 10.0"
-            )
-            OA = 10.0
-            time.sleep(10)
-        else:
-            # Initializing the x-axis grid
-            print(f"Delta: {delta}")
-            XGrid = np.linspace(0, 1, delta)
-
-            yStack = []
-            for k in kernels:
-                Y = np.reshape(k[1](XGrid).T, delta)
-                yStack.append(Y)
-
-            yIntersection = np.amin(yStack, axis=0)
-
-            if integrate == "sum":
-                OA = (yIntersection.sum())/delta
-            elif integrate == "trapz":
-                OA = np.trapz(yIntersection, XGrid)
-
-        if only_areas:
-            return OA
-        else:
-            if return_series:
-                return OA, kernels, lengths, normalizedX
-            else:
-                return OA, kernels, lengths
-
-    def segregateX_y(self):
-        """
-        Routine to segregate X samples into unique y groups
-        """
-        unique_y = list(set(self.y))
-
-        _subX = defaultdict()
-        for uy in unique_y:
-            _subX[uy] = self.X[np.where(self.y==uy)[0], :]
-
-        return _subX
-
     def plot_overlapAreas(
             self, feat_idx, feat_names=None, _ylim=None, _title=None,
             show_samples=False, savefig=None, format="svg",
@@ -282,32 +316,31 @@ class PDE_Segregate():
         """
         Function to plot intersection areas for a given feature.
         """
-        OA, _kernels, _lengths, normalizedX = self.compute_OA(
-            feat_idx, only_areas=False, return_series=True
-        )
+        normalizedX_dict = self.normalize_feature_vector(feat_idx)
+
+        OA = self.compute_intersectionAreas(feat_idx, False)
 
         yStack = []
-        _xGrid = np.linspace(0, 1, max(1000, max(_lengths)))
 
         if _ax is None:
             fig, _ax = plt.subplots(1,1)
 
         linecolors = []
-        for k in _kernels:
-            Y = np.reshape(k[1](_xGrid).T, _xGrid.shape)
+        for k in self.feature_kernels[feat_idx]:
+            Y = np.reshape(k[1](self.XGrid).T, self.delta)
             yStack.append(Y)
 
             # Plotting the probabilty density estimate per class
-            p = _ax.plot(_xGrid, Y, label=k[0])
+            p = _ax.plot(self.XGrid, Y, label=k[0])
             # Get line colors
             linecolors.append(p[0].get_color())
 
         # Plotting the data samples
         if show_samples:
             yMax = _ax.get_ylim()[1]
-            for i, k in enumerate(_kernels):
+            for i, k in enumerate(self.feature_kernels):
                 _ax.vlines(
-                    normalizedX[k[0]], 0.0, 0.03*yMax,
+                    normalizedX_dict[k[0]], 0.0, 0.03*yMax,
                     color=linecolors[i], alpha=0.7
                 )
 
@@ -317,13 +350,13 @@ class PDE_Segregate():
         if legend == "intersection":
             intersectionLegend = True
             fill_poly = _ax.fill_between(
-                _xGrid, 0, yIntersection, label=f'Intersection: {round(OA, 3)}',
+                self.XGrid, 0, yIntersection, label=f'Intersection: {round(OA, 3)}',
                 color="lightgray", edgecolor="lavender"
             )
         else:
             intersectionLegend = False
             fill_poly = _ax.fill_between(
-                _xGrid, 0, yIntersection, color="lightgray", edgecolor="lavender"
+                self.XGrid, 0, yIntersection, color="lightgray", edgecolor="lavender"
             )
 
         fill_poly.set_hatch('xxx')
