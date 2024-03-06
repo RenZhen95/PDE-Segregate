@@ -1,4 +1,5 @@
 import os, sys
+import itertools
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -31,10 +32,11 @@ def get_best_perLA(df, learningAlgo):
 
     return top_df
 
-def plot_boxPlot(df, datasetName, ax):
+def plot_boxPlot(df, datasetName, ax, set_xlim=None):
     # 4 thresholds x 5 learning algo x nFSS
+    nFSS = int(df.shape[0]/4)
     df_boxPlot = pd.DataFrame(
-        data=np.zeros((4*5*len(FSS_dict), 4)),
+        data=np.zeros((4*5*nFSS, 4)),
         columns=["Bal. Acc", "FSS", "LAlgo", "# Top Features Retained"]
     )
     df_boxPlot = df_boxPlot.astype({"FSS": "object", "LAlgo": "object"})
@@ -91,33 +93,37 @@ def plot_boxPlot(df, datasetName, ax):
     )
 
     axBoxPlot.set_xlabel("Balanced Accuracy", fontsize="large")
-    axBoxPlot.set_xlim(0.45, 1.02)
-    axBoxPlot.set_xticks(np.arange(0.5, 1.05, 0.1))
+    if set_xlim is None:
+        axBoxPlot.set_xlim(0.45, 1.02)
+        axBoxPlot.set_xticks(np.arange(0.5, 1.05, 0.1))
 
     axBoxPlot.set_ylabel("")
-    
+
     axBoxPlot.tick_params(axis="both", labelsize="large")
     axBoxPlot.set_title(datasetName, fontsize="x-large")
 
     axBoxPlot.grid(visible=True)
 
 if len(sys.argv) < 2:
-    print("Possible usage: python3 plotResults_BoxPlots.py <resultsXlFile>")
+    print("Possible usage: python3 plotResults_BoxPlots.py <resultsFolder>")
     sys.exit(1)
 else:
-    resultsXlFile = Path(sys.argv[1])
+    resultsFolder = Path(sys.argv[1])
 
 # Reading results for the following datasets
-datasets = {
-    "cns": "CNS",
-    "lung": "Lung",
-    "leuk": "Leukemia",
-    "colon": "Colon",
-    "pros3": "Prostrate",
-    "geneExpressionCancerRNA": "Cancer RNA-Gene Expression"
-    # "gcm": "GCM"
-    # "dlbcl": "DLBCL",
-}
+datasets = [
+    ("cns", "CNS"),
+    ("lung", "Lung"),
+    ("leuk", "Leukemia"),
+    ("colon", "Colon"),
+    ("pros3", "Prostrate"),
+    ("gcm", "GCM"),
+    ("dlbcl", "DLBCL"),
+    ("PersonGaitDataSet", "Person Gait"),
+    ("geneExpressionCancerRNA", "Cancer RNA-Gene Expression"),
+    ("pros1", "Prostrate 1"),
+    ("pros2", "Prostrate 2")
+]
 # FSS name-mapper
 FSS_dict = {
     "RlfF": "RELIEF-F",
@@ -127,39 +133,78 @@ FSS_dict = {
     "RFGini": "Random Forest (Gini)",
     "MI": "Mutual Information",
     "FT": "ANOVA (F-Statistic)",
-    "OAscott": "PDE-Segregate"
+    "OAtotal": "PDE-Segregate",
+    "OApw": "PDE-Segregate (pairwise)"
 }
 
 # 6 benchmark datasets
 datasetResults_dict = defaultdict()
-for d, data_name in datasets.items():
-    datasetResults_dict[data_name] = pd.read_excel(
-        resultsXlFile, sheet_name=d, index_col=0, usecols="A:F"
-    )
-    datasetResults_dict[data_name]["FSS"] = [
-        "" for i in range(datasetResults_dict[data_name].shape[0])
+
+for f in os.scandir(resultsFolder):
+    ds_name = (f.name).split('_')[0]
+    datasetResults_dict[ds_name] = pd.read_csv(f, index_col=0)
+
+    datasetResults_dict[ds_name]["FSS"] = [
+        "" for i in range(datasetResults_dict[ds_name].shape[0])
     ]
-    for i in datasetResults_dict[data_name].index:
+    for i in datasetResults_dict[ds_name].index:
         if i.split('-')[0] in list(FSS_dict.keys()):
-            datasetResults_dict[data_name].at[i, "FSS"] = FSS_dict[i.split('-')[0]]
+            datasetResults_dict[ds_name].at[i, "FSS"] = FSS_dict[i.split('-')[0]]
         else:
-            datasetResults_dict[data_name].drop([i], inplace=True)
+            datasetResults_dict[ds_name].drop([i], inplace=True)
+
+datasetResultsMulti_dict = datasetResults_dict.copy()
+for k in datasetResults_dict.keys():
+    df = datasetResults_dict[k]
+    df = df.drop([i for i in list(df.index) if "OApw" in i])
+    datasetResults_dict[k] = df
 
 # Plot
-fig, axs = plt.subplots(2, 3, figsize=(15, 8), sharey=True, sharex=True)
-axisCounter = 0
-for d, df in datasetResults_dict.items():
-    print(f"=== === ===\n{d}\n=== === ===")
-    plot_boxPlot(
-        df, d, axs[int(axisCounter/3), axisCounter%3]
-    )
-    axisCounter += 1
+fig, axs   = plt.subplots(2, 3, figsize=(15, 8), sharey=True, sharex=True)
+fig2, axs2 = plt.subplots(2, 3, figsize=(15, 8), sharey=True, sharex=True)
+for i in range(len(datasets)):
+    if i < 6:
+        plot_boxPlot(
+            datasetResults_dict[datasets[i][0]],
+            datasets[i][1], axs[int(i/3), i%3]
+        )
+    else:
+        plot_boxPlot(
+            datasetResults_dict[datasets[i][0]],
+            datasets[i][1], axs2[int((i-6)/3), (i-6)%3]
+        )
 
 fig.suptitle(
     "Best Performance per Classifier", fontsize="xx-large",
     x=0.022, y=0.97, horizontalalignment="left"
 )
 fig.tight_layout()
+
+fig2.suptitle(
+    "Best Performance per Classifier", fontsize="xx-large",
+    x=0.022, y=0.97, horizontalalignment="left"
+)
+fig2.tight_layout()
+
+# Multiclass Datasets
+fig3, axs3 = plt.subplots(1, 2, figsize=(11.5, 4.75), sharey=True)
+multiclass_datasets = [
+    ("geneExpressionCancerRNA", "Cancer RNA-Gene Expression"),
+    ("PersonGaitDataSet", "Person Gait")
+]
+plot_boxPlot(
+    datasetResultsMulti_dict[multiclass_datasets[0][0]],
+    multiclass_datasets[0][1], axs3[0], set_xlim=''
+)
+plot_boxPlot(
+    datasetResultsMulti_dict[multiclass_datasets[1][0]],
+    multiclass_datasets[1][1], axs3[1], set_xlim=''
+)
+fig3.suptitle(
+    "Best Performance per Classifier", fontsize="xx-large",
+    x=0.022, y=0.97, horizontalalignment="left"
+)
+fig3.tight_layout()
 
 plt.show()
 

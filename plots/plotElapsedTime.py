@@ -5,7 +5,7 @@ import pandas as pd
 from pathlib import Path
 
 if len(sys.argv) < 5:
-    print("Possible usage: python3 plotElapsedTime.py <pyTime> <IRlf> <LHRlf> <csvfile>")
+    print("Possible usage: python3 plotElapsedTime.py <pyTime> <IRlf> <LHRlf> <savefile>")
     sys.exit()
 else:
     pytime = Path(sys.argv[1])
@@ -22,9 +22,9 @@ LHRlf = pd.read_csv(LHR_time, header=None, index_col=0)
 FSS = [
     "RlfF", "MSurf", "I-RELIEF", "LH-RELIEF",
     "MI",
-    "FT", "EtaSq",
     "RFGini",
-    "OAscott", "OAsilverman"
+    "FT",
+    "OAtotal", "OApw"
 ]
 
 datasets = [
@@ -50,7 +50,7 @@ for fss in FSS:
 averageElapsedTime = elapsedTimes_df.mean(axis=0)
 
 averagedTimes_row = pd.DataFrame(
-    data=np.reshape(averageElapsedTime.values, (1,10)),
+    data=np.reshape(averageElapsedTime.values, (1, elapsedTimes_df.shape[1])),
     columns=averageElapsedTime.index, index=["Average"]
 )
 

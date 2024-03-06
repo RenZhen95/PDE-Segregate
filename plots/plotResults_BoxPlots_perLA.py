@@ -8,8 +8,9 @@ from collections import defaultdict
 
 def plot_boxPlot(df, datasetName, algo, ax, marker="*", s=15):
     # 4 thresholds x nFSS
+    nFSS = int(df.shape[0]/4)
     df_boxPlot = pd.DataFrame(
-        data=np.zeros((4*len(FSS_dict), 3)),
+        data=np.zeros((4*nFSS, 3)),
         columns=["Bal. Acc", "FSS", "# Top Features Retained"]
     )
     df_boxPlot = df_boxPlot.astype({"FSS": "object"})
@@ -40,22 +41,20 @@ def plot_boxPlot(df, datasetName, algo, ax, marker="*", s=15):
     axStripPlot.grid(visible=True)
 
 if len(sys.argv) < 2:
-    print("Possible usage: python3 plotResults_BoxPlots.py <resultsXlFile>")
+    print("Possible usage: python3 plotResults_BoxPlots.py <resultsFolder>")
     sys.exit(1)
 else:
-    resultsXlFile = Path(sys.argv[1])
+    resultsFolder = Path(sys.argv[1])
 
 # Reading results for the following datasets
-datasets = {
-    "cns": "CNS",
-    "lung": "Lung",
-    "leuk": "Leukemia",
-    "colon": "Colon",
-    "pros3": "Prostrate",
-    "geneExpressionCancerRNA": "Cancer RNA-Gene Expression",
-    # "gcm": "GCM"
-    # "dlbcl": "DLBCL",
-}
+datasets = [
+    ("cns", "CNS"),
+    ("lung", "Lung"),
+    ("leuk", "Leukemia"),
+    ("colon", "Colon"),
+    ("pros3", "Prostrate"),
+    ("gcm", "GCM")
+]
 # FSS name-mapper
 FSS_dict = {
     "RlfF": "RELIEF-F",
@@ -65,23 +64,31 @@ FSS_dict = {
     "RFGini": "Random Forest (Gini)",
     "MI": "Mutual Information",
     "FT": "ANOVA (F-Statistic)",
-    "OAscott": "PDE-Segregate"
+    "OAtotal": "PDE-Segregate",
+    "OApw": "PDE-Segregate (pairwise)"
 }
 
 # 6 benchmark datasets
 datasetResults_dict = defaultdict()
-for d, data_name in datasets.items():
-    datasetResults_dict[data_name] = pd.read_excel(
-        resultsXlFile, sheet_name=d, index_col=0, usecols="A:F"
-    )
-    datasetResults_dict[data_name]["FSS"] = [
-        "" for i in range(datasetResults_dict[data_name].shape[0])
+
+for f in os.scandir(resultsFolder):
+    ds_name = (f.name).split('_')[0]
+    datasetResults_dict[ds_name] = pd.read_csv(f, index_col=0)
+
+    datasetResults_dict[ds_name]["FSS"] = [
+        "" for i in range(datasetResults_dict[ds_name].shape[0])
     ]
-    for i in datasetResults_dict[data_name].index:
+    for i in datasetResults_dict[ds_name].index:
         if i.split('-')[0] in list(FSS_dict.keys()):
-            datasetResults_dict[data_name].at[i, "FSS"] = FSS_dict[i.split('-')[0]]
+            datasetResults_dict[ds_name].at[i, "FSS"] = FSS_dict[i.split('-')[0]]
         else:
-            datasetResults_dict[data_name].drop([i], inplace=True)
+            datasetResults_dict[ds_name].drop([i], inplace=True)
+
+datasetResultsMulti_dict = datasetResults_dict.copy()
+for k in datasetResults_dict.keys():
+    df = datasetResults_dict[k]
+    df = df.drop([i for i in list(df.index) if "OApw" in i])
+    datasetResults_dict[k] = df
 
 # Plot
 figkNN, axskNN = plt.subplots(2, 3, figsize=(15, 8), sharey=True, sharex=True)
@@ -90,7 +97,9 @@ figGNB, axsGNB = plt.subplots(2, 3, figsize=(15, 8), sharey=True, sharex=True)
 figLDA, axsLDA = plt.subplots(2, 3, figsize=(15, 8), sharey=True, sharex=True)
 figDT, axsDT = plt.subplots(2, 3, figsize=(15, 8), sharey=True, sharex=True)
 axisCounter = 0
-for d, df in datasetResults_dict.items():
+for i in range(len(datasets)):
+    df = datasetResults_dict[datasets[i][0]]
+    d  = datasets[i][1]
     plot_boxPlot(
         df, d, "kNN", axskNN[int(axisCounter/3), axisCounter%3]
     )
@@ -139,4 +148,5 @@ figDT.suptitle(
 figDT.tight_layout()
 
 plt.show()
+
 sys.exit(0)
