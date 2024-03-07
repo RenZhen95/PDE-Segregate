@@ -14,7 +14,13 @@ class PDE_Segregate():
         """
         Parameters
         ----------
-        integrate : str
+        X : np.array
+         - Dataset with the shape: (n_samples, n_features)
+
+        y : np.array
+         - Class vector
+
+        integration_method : str
          - Integration method.
 
            Available options include 'numpy.trapz' (default) and 'sum'.
