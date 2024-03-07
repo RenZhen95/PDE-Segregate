@@ -49,11 +49,12 @@ for i, s in enumerate(separation):
     y = X["Class"]
     X.drop(columns=["Class"], inplace=True)
     X = X.values
-    pdeSegregate = PDE_Segregate(X, y)
+    pdeSegregate = PDE_Segregate(X, y, delta=1000, pairwise=False, n_jobs=-1)
+    pdeSegregate.fit()
     
     # Overlapping areas
-    print(f"OA from PDE-Segregate: {pdeSegregate.overlappingAreas[0]}")
-    areaIntersection.append(pdeSegregate.overlappingAreas[0])
+    print(f"OA from PDE-Segregate: {pdeSegregate.intersectionAreas[0]}")
+    areaIntersection.append(pdeSegregate.intersectionAreas[0])
     
     # ANOVA F-Test
     f_statistic, p_values = f_classif(X, y)

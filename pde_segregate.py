@@ -319,7 +319,7 @@ class PDE_Segregate():
         """
         normalizedX_dict = self.normalize_feature_vector(feat_idx)
 
-        OA = self.compute_intersectionAreas(feat_idx, False)
+        OA = self.compute_intersectionArea(feat_idx, False)
 
         yStack = []
 
@@ -327,21 +327,20 @@ class PDE_Segregate():
             fig, _ax = plt.subplots(1,1)
 
         linecolors = []
-        for k in self.feature_kernels[feat_idx].values():
-            Y = np.reshape(k(self.XGrid).T, self.delta)
-            yStack.append(Y)
+        for y, p_y in self.feature_kernels[feat_idx].items():
+            yStack.append(p_y)
 
             # Plotting the probabilty density estimate per class
-            p = _ax.plot(self.XGrid, Y, label=k[0])
+            p = _ax.plot(self.XGrid, p_y, label=y)
             # Get line colors
             linecolors.append(p[0].get_color())
 
         # Plotting the data samples
         if show_samples:
             yMax = _ax.get_ylim()[1]
-            for i, k in enumerate(self.feature_kernels):
+            for i, k in enumerate(self.feature_kernels[feat_idx].keys()):
                 _ax.vlines(
-                    normalizedX_dict[k[0]], 0.0, 0.03*yMax,
+                    normalizedX_dict[k], 0.0, 0.03*yMax,
                     color=linecolors[i], alpha=0.7
                 )
 
