@@ -1,6 +1,6 @@
-import gi; gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
-Gtk.init_check()
+# import gi; gi.require_version("Gtk", "3.0")
+# from gi.repository import Gtk
+# Gtk.init_check()
 
 import numpy as np
 np.random.seed(12)
@@ -56,17 +56,19 @@ fig2, ax2 = plt.subplots(1, 1)
 ax2.plot(Xgrid, pde_ownN, label=r"$\hat{p}_{\bar{f}_{2-}}$")
 ax2.plot(Xgrid, pde_ownP, label=r"$\hat{p}_{\bar{f}_{2+}}$")
 
-# # Getting intersection area
-# yStack = []
-# yStack.append(pde_ownN)
-# yStack.append(pde_ownP)
-# yIntersection = np.amin(yStack, axis=0)
-# OA = np.trapz(yIntersection, Xgrid)
-# fill_poly = ax2.fill_between(
-#     Xgrid, 0, yIntersection, label=f"Intersection: {round(OA,3)}",
-#     color="lightgray", edgecolor="lavender"
-# )
-# fill_poly.set_hatch('xxx')
+# Getting intersection area
+yStack = []
+yStack.append(pde_ownN)
+yStack.append(pde_ownP)
+yIntersection = np.amin(yStack, axis=0)
+OA = np.trapz(yIntersection, Xgrid)
+_label = r"$A_{i, \bar{f}_{2}} = $"
+_label += str(round(OA,3))
+fill_poly = ax2.fill_between(
+    Xgrid, 0, yIntersection, label=_label,
+    color="lightgray", edgecolor="lavender"
+)
+fill_poly.set_hatch('xxx')
 
 ax2.grid(visible=True)
 plt.xlim((-0.005, 1.005))
@@ -75,4 +77,4 @@ plt.ylabel(r"$\hat{p}_{\bar{f}_{2}}$    ", fontsize='x-large', rotation=0)
 plt.legend(fontsize='xx-large')
 plt.tight_layout()
 plt.show()
-fig2.savefig("gamm_step4.png", format="png")
+# fig2.savefig("gamm_step4.png", format="png")

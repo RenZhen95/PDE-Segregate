@@ -1,6 +1,6 @@
-import gi; gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
-Gtk.init_check()
+# import gi; gi.require_version("Gtk", "3.0")
+# from gi.repository import Gtk
+# Gtk.init_check()
 
 import numpy as np
 np.random.seed(12)
@@ -55,22 +55,26 @@ import matplotlib.pyplot as plt
 # ax[1].grid(visible=True)
 
 fig2, ax2 = plt.subplots(1, 1)
-ax2.plot(Xgrid, pde_own1, label=r"$\hat{p}_{\bar{f}_{2,c1}}$")
-# ax2.plot(Xgrid, pde_own1, linestyle="dotted")
+# ax2.plot(Xgrid, pde_own1, label=r"$\hat{p}_{\bar{f}_{2,c1}}$")
+ax2.plot(Xgrid, pde_own1, linestyle="dotted")
+
 ax2.plot(Xgrid, pde_own2, label=r"$\hat{p}_{\bar{f}_{2,c2}}$")
 # ax2.plot(Xgrid, pde_own2, linestyle="dotted")
-# ax2.plot(Xgrid, pde_own3, label=r"$\hat{p}_{\bar{f}_{2,c3}}$")
-ax2.plot(Xgrid, pde_own3, linestyle="dotted")
+
+ax2.plot(Xgrid, pde_own3, label=r"$\hat{p}_{\bar{f}_{2,c3}}$")
+# ax2.plot(Xgrid, pde_own3, linestyle="dotted")
 
 # Getting intersection area
 yStack = []
-yStack.append(pde_own1)
+# yStack.append(pde_own1)
 yStack.append(pde_own2)
-# yStack.append(pde_own3)
+yStack.append(pde_own3)
 yIntersection = np.amin(yStack, axis=0)
 OA = np.trapz(yIntersection, Xgrid)
+_label = r"$A_{i, \bar{f}_{2}}^3 = $"
+_label += str(round(OA,3))
 fill_poly = ax2.fill_between(
-    Xgrid, 0, yIntersection, label=f"Intersection: {round(OA,3)}",
+    Xgrid, 0, yIntersection, label=_label,
     color="lightgray", edgecolor="lavender"
 )
 fill_poly.set_hatch('xxx')
@@ -79,7 +83,7 @@ ax2.grid(visible=True)
 plt.xlim((-0.005, 1.005))
 plt.xlabel(r"$\bar{f}_{2}$", fontsize='x-large')
 plt.ylabel(r"$\hat{p}_{\bar{f}_{2}}$    ", fontsize='x-large', rotation=0)
-plt.legend(fontsize='xx-large')
+plt.legend(fontsize='xx-large', loc="upper left", bbox_to_anchor=(0.54, 1.02))
 plt.tight_layout()
 plt.show()
-fig2.savefig("gamm_multiclass_k1w2.png", format="png")
+# fig2.savefig("gamm_multiclass_k1w2.png", format="png")

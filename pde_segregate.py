@@ -312,10 +312,17 @@ class PDE_Segregate():
     def plot_overlapAreas(
             self, feat_idx, feat_names=None, _ylim=None, _title=None,
             show_samples=False, savefig=None, format="svg",
-            legend=False, _ax=None
+            legend=False, return_normVector=False, _ax=None
     ):
         """
         Function to plot intersection areas for a given feature.
+
+        Parameters
+        ----------
+        legend : bool, 'intersection'
+         - If true, legend would include all the class PDEs and computed
+           intersection areas. If 'intersection', only includes
+           intersection area.
         """
         normalizedX_dict = self.normalize_feature_vector(feat_idx)
 
@@ -331,7 +338,14 @@ class PDE_Segregate():
             yStack.append(p_y)
 
             # Plotting the probabilty density estimate per class
-            p = _ax.plot(self.XGrid, p_y, label=y)
+            if legend == "intersection":
+                p = _ax.plot(self.XGrid, p_y)
+            else:
+                if legend:
+                    p = _ax.plot(self.XGrid, p_y, label=y)
+                else:
+                    p = _ax.plot(self.XGrid, p_y)
+
             # Get line colors
             linecolors.append(p[0].get_color())
 
@@ -348,13 +362,13 @@ class PDE_Segregate():
         # grid point
         yIntersection = np.amin(yStack, axis=0)
         if legend == "intersection":
-            intersectionLegend = True
+            _label = r"$A_{i} = $"
+            _label += str(round(OA, 3))
             fill_poly = _ax.fill_between(
-                self.XGrid, 0, yIntersection, label=f'Intersection: {round(OA, 3)}',
+                self.XGrid, 0, yIntersection, label=_label,
                 color="lightgray", edgecolor="lavender"
             )
         else:
-            intersectionLegend = False
             fill_poly = _ax.fill_between(
                 self.XGrid, 0, yIntersection, color="lightgray", edgecolor="lavender"
             )
@@ -362,17 +376,17 @@ class PDE_Segregate():
         fill_poly.set_hatch('xxx')
 
         if not feat_names is None:
-            _ax.set_xlabel(feat_names[feat_idx])
+            _ax.set_xlabel(feat_names[feat_idx], fontsize='large')
         else:
-            _ax.set_xlabel(f"Feature {feat_idx}")
+            _ax.set_xlabel(f"Feature {feat_idx}", fontsize='large')
 
         _ax.set_xlim((-0.005, 1.005))
-        _ax.set_xticks(np.arange(0.0, 1.1, 0.1))
+        _ax.set_xticks(np.arange(0.0, 1.2, 0.2))
         if not _ylim is None:
             _ax.set_ylim(_ylim)
 
         if legend:
-            _ax.legend(bbox_to_anchor=(0.8,1), loc='upper left', title=_title, fontsize='small')
+            _ax.legend(bbox_to_anchor=(0.4,1), loc='upper left', title=_title, fontsize='x-large')
 
         # If user DOES NOT pass a matplotlib Axes object from the outside
         if _ax is None:
@@ -382,3 +396,6 @@ class PDE_Segregate():
                 fig.savefig(f"{savefig}.{format}", format=format)
             else:
                 plt.show()
+
+        if return_normVector:
+            return normalizedX_dict

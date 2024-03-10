@@ -12,8 +12,6 @@ separation = [1, 3, 5]
 
 fig, axs = plt.subplots(1, 3, figsize=(11.5, 5.3), sharey=True)
 
-areaIntersection = []
-
 for i, s in enumerate(separation):
     print(f"Separation of class 1 from class 0: {s}")
     print("========================================")
@@ -52,10 +50,6 @@ for i, s in enumerate(separation):
     pdeSegregate = PDE_Segregate(X, y, delta=1000, pairwise=False, n_jobs=-1)
     pdeSegregate.fit()
     
-    # Overlapping areas
-    print(f"OA from PDE-Segregate: {pdeSegregate.intersectionAreas[0]}")
-    areaIntersection.append(pdeSegregate.intersectionAreas[0])
-    
     # ANOVA F-Test
     f_statistic, p_values = f_classif(X, y)
     print(f"F-Stat from scikit-learn's ANOVA  : {f_statistic}")
@@ -92,15 +86,52 @@ for i, s in enumerate(separation):
     print(f"Manually computed Eta^2  : {etaSquared}")
     
     # Plot overlapping areas
-    pdeSegregate.plot_overlapAreas(
-        0, feat_names='X', _ylim=(0.0, 5.25), _title=None,
-        show_samples=True, _ax=axs[i], legend=False
+    normalized_feature_vector = pdeSegregate.plot_overlapAreas(
+        0, _ylim=(0.0, 5.25), _title=None,
+        show_samples=False, _ax=axs[i], legend="intersection",
+        return_normVector=True
+    )
+
+    # Get means of normalized feature vectors
+    mean0 = normalized_feature_vector[0.0].mean()
+    mean1 = normalized_feature_vector[1.0].mean()
+    meanTotal = np.append(
+        normalized_feature_vector[0.0], normalized_feature_vector[1.0]
+    )
+    meanTotal = meanTotal.mean()
+
+    axs[i].vlines(
+        mean0, 0.0, 0.35, label="Mean of Class 0",
+        color=np.array([76, 114, 176])/255, linewidth=2.5
+    )
+    axs[i].vlines(
+        mean1, 0.0, 0.35, label="Mean of Class 1",
+        color=np.array([221, 132, 82])/255, linewidth=2.5
+    )
+    axs[i].vlines(
+        meanTotal, 0.0, 0.35, label="Total Mean", color="black",
+        linewidth=2.5
+    )
+    xlabel = r"$\bar{X}$"
+    xlabel += "\n"
+    xlabel += r"Class Separation: $\sigma = $"
+    xlabel += str(s)
+    axs[i].set_xlabel(xlabel, fontsize='x-large')
+
+    title = f"# Samples in Each Class: {n}\n"
+    title += f"F-Ratio: {int(np.round(F))} | "
+    title += r"$\eta^{2}$: "
+    title += str(np.round(etaSquared, 3))
+    axs[i].set_title(
+        title, fontsize='x-large', horizontalalignment="left",
+        loc="left"
     )
 
 # Figures post-processing
 for i in range(3):
-    axs[i].grid(visible=True, which="major", axis="both")
-    axs[i].set_title(f"Intersection area: {np.round(areaIntersection[i],3)}")
+    axs[i].grid(visible=True, which="major", axis="x")
+
+axs[0].set_ylabel(r"$\hat{p}_X$     ", fontsize='large', rotation=0)
 
 plt.tight_layout()
 plt.show()
