@@ -53,6 +53,15 @@ fill_poly1 = ax2[0].fill_between(
 )
 fill_poly1.set_hatch('xxx')
 ax2[0].set_yticks([])
+# Samples
+ax2[0].vlines(
+    sN1, 0.0, 0.25,
+    color=np.array([76, 114, 176])/255, linewidth=2.5
+)
+ax2[0].vlines(
+    sP1, 0.0, 0.25,
+    color=np.array([221, 132, 82])/255, linewidth=2.5
+)
 
 # Feature 2
 ax2[1].plot(Xgrid, pde_ownN2, label="Negative")
@@ -69,6 +78,15 @@ fill_poly2 = ax2[1].fill_between(
 )
 fill_poly2.set_hatch('xxx')
 ax2[1].set_yticks([])
+# Samples
+ax2[1].vlines(
+    sN2, 0.0, 0.25,
+    color=np.array([76, 114, 176])/255, linewidth=2.5
+)
+ax2[1].vlines(
+    sP2, 0.0, 0.25,
+    color=np.array([221, 132, 82])/255, linewidth=2.5
+)
 
 plt.xlim((-0.005, 1.005))
 plt.xticks(fontsize='large')
