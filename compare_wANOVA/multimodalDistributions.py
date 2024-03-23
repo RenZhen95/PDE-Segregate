@@ -98,18 +98,18 @@ def _run(c0, c1, _ax):
     )
     meanTotal = meanTotal.mean()
 
-    _ax.vlines(
-        mean0, 0.0, 0.35, label="Mean of Class 0",
-        color=np.array([76, 114, 176])/255, linewidth=2.5
-    )
-    _ax.vlines(
-        mean1, 0.0, 0.35, label="Mean of Class 1",
-        color=np.array([221, 132, 82])/255, linewidth=2.5
-    )
-    _ax.vlines(
-        meanTotal, 0.0, 0.35, label="Total Mean", color="black",
-        linewidth=2.5
-    )
+    # _ax.vlines(
+    #     mean0, 0.0, 0.35, label="Mean of Class 0",
+    #     color=np.array([76, 114, 176])/255, linewidth=2.5
+    # )
+    # _ax.vlines(
+    #     mean1, 0.0, 0.35, label="Mean of Class 1",
+    #     color=np.array([221, 132, 82])/255, linewidth=2.5
+    # )
+    # _ax.vlines(
+    #     meanTotal, 0.0, 0.35, label="Total Mean", color="black",
+    #     linewidth=2.5
+    # )
     xlabel = r"$\bar{X}$"
     xlabel += "\n"
     xlabel += r"Class Separation: $\sigma = $3"

@@ -32,16 +32,15 @@ def get_best_perLA(df, learningAlgo):
 
     return top_df
 
-def plot_boxPlot(df, datasetName, ax, set_xlim=None):
+def plot_boxPlot(df, datasetName, ax, nLA=5, set_xlim=None):
     # 4 thresholds x 5 learning algo x nFSS
     nFSS = int(df.shape[0]/4)
     df_boxPlot = pd.DataFrame(
-        data=np.zeros((4*5*nFSS, 4)),
+        data=np.zeros((4*nLA*nFSS, 4)),
         columns=["Bal. Acc", "FSS", "LAlgo", "# Top Features Retained"]
     )
     df_boxPlot = df_boxPlot.astype({"FSS": "object", "LAlgo": "object"})
-
-    LAlgos = ["kNN", "SVM", "Gaussian-NB", "LDA", "DT"]
+    LAlgos = [i for i in df.columns if i != "FSS"]
     count = 0
     for i in df.index:
         nThreshold = int(i.split('-')[1])
@@ -134,7 +133,7 @@ FSS_dict = {
     "MI": "Mutual Information",
     "FT": "ANOVA (F-Statistic)",
     "OAtotal": "PDE-Segregate",
-    "OApw": "PDE-Segregate (pairwise)"
+    "OApw": "PDE-Segregate (B)"
 }
 
 # 6 benchmark datasets
@@ -174,16 +173,7 @@ for i in range(len(datasets)):
             datasets[i][1], axs2[int((i-6)/3), (i-6)%3]
         )
 
-fig.suptitle(
-    "Best Performance per Classifier", fontsize="xx-large",
-    x=0.022, y=0.97, horizontalalignment="left"
-)
 fig.tight_layout()
-
-fig2.suptitle(
-    "Best Performance per Classifier", fontsize="xx-large",
-    x=0.022, y=0.97, horizontalalignment="left"
-)
 fig2.tight_layout()
 
 # Multiclass Datasets
@@ -192,17 +182,30 @@ multiclass_datasets = [
     ("geneExpressionCancerRNA", "Cancer RNA-Gene Expression"),
     ("PersonGaitDataSet", "Person Gait")
 ]
-plot_boxPlot(
-    datasetResultsMulti_dict[multiclass_datasets[0][0]],
-    multiclass_datasets[0][1], axs3[0], set_xlim=''
+datasetResultsMulti_dict["geneExpressionCancerRNA"] = datasetResultsMulti_dict[
+    "geneExpressionCancerRNA"
+].map(
+    lambda x: "PDE-Segregate (A)" if x=="PDE-Segregate" else x
 )
-plot_boxPlot(
-    datasetResultsMulti_dict[multiclass_datasets[1][0]],
-    multiclass_datasets[1][1], axs3[1], set_xlim=''
+datasetResultsMulti_dict["PersonGaitDataSet"] = datasetResultsMulti_dict[
+    "PersonGaitDataSet"
+].map(
+    lambda x: "PDE-Segregate (A)" if x=="PDE-Segregate" else x
 )
-fig3.suptitle(
-    "Best Performance per Classifier", fontsize="xx-large",
-    x=0.022, y=0.97, horizontalalignment="left"
+# For the multiclass datasets, only take SVM and LDA
+# Cancer Gene
+reduced_cancer = datasetResultsMulti_dict["geneExpressionCancerRNA"]
+reduced_cancer.drop(["kNN", "Gaussian-NB", "DT"], axis=1, inplace=True)
+# Person Gait
+reduced_persongait = datasetResultsMulti_dict["PersonGaitDataSet"]
+reduced_persongait.drop(["kNN", "Gaussian-NB", "DT"], axis=1, inplace=True)
+
+plot_boxPlot(
+    reduced_cancer, multiclass_datasets[0][1], axs3[0], nLA=2
+)
+
+plot_boxPlot(
+    reduced_persongait, multiclass_datasets[1][1], axs3[1], nLA=2
 )
 fig3.tight_layout()
 

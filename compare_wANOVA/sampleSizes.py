@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.getcwd()))
 from pde_segregate import PDE_Segregate
 
 # Dataset parameters
-nSamples = [3000, 100, 5]
+nSamples = [3000, 2500, 2000]
 
 fig, axs = plt.subplots(1, 3, figsize=(11.5, 5.3), sharey=True)
 
@@ -100,18 +100,18 @@ for i, n in enumerate(nSamples):
     )
     meanTotal = meanTotal.mean()
 
-    axs[i].vlines(
-        mean0, 0.0, 0.35, label="Mean of Class 0",
-        color=np.array([76, 114, 176])/255, linewidth=2.5
-    )
-    axs[i].vlines(
-        mean1, 0.0, 0.35, label="Mean of Class 1",
-        color=np.array([221, 132, 82])/255, linewidth=2.5
-    )
-    axs[i].vlines(
-        meanTotal, 0.0, 0.35, label="Total Mean", color="black",
-        linewidth=2.5
-    )
+    # axs[i].vlines(
+    #     mean0, 0.0, 0.35, label="Mean of Class 0",
+    #     color=np.array([76, 114, 176])/255, linewidth=2.5
+    # )
+    # axs[i].vlines(
+    #     mean1, 0.0, 0.35, label="Mean of Class 1",
+    #     color=np.array([221, 132, 82])/255, linewidth=2.5
+    # )
+    # axs[i].vlines(
+    #     meanTotal, 0.0, 0.35, label="Total Mean", color="black",
+    #     linewidth=2.5
+    # )
     xlabel = r"$\bar{X}$"
     xlabel += "\n"
     xlabel += r"Class Separation: $\sigma = $"

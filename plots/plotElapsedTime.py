@@ -63,33 +63,34 @@ print(elapsedTimes_df)
 
 df_for_plotting = pd.DataFrame(
     data=np.zeros((elapsedTimes_df.shape[0]*elapsedTimes_df.shape[1], 3)),
-    columns=["FSS", "Dataset", "Time"]
+    columns=["FSS", "Dataset", "Time [s]"]
 )
 i = 0
 for fss in elapsedTimes_df.columns:
     for ds in datasets:
         df_for_plotting.at[i, "FSS"] = FSS[fss]
         df_for_plotting.at[i, "Dataset"] = ds
-        df_for_plotting.at[i, "Time"] = elapsedTimes_df.at[ds, fss]
+        df_for_plotting.at[i, "Time [s]"] = elapsedTimes_df.at[ds, fss]
         i += 1
 
     df_for_plotting.at[i, "FSS"] = FSS[fss]
     df_for_plotting.at[i, "Dataset"] = "Average"
-    df_for_plotting.at[i, "Time"] = elapsedTimes_df.at["Average", fss]
+    df_for_plotting.at[i, "Time [s]"] = elapsedTimes_df.at["Average", fss]
     i += 1
 
 fig, ax = plt.subplots(1, 2, figsize=(14, 5))
 axBoxPlot = sns.boxplot(
-    data=df_for_plotting, x="Time", y="FSS",
+    data=df_for_plotting, x="Time [s]", y="FSS",
     width=0.7, fliersize=0., fill=False, ax=ax[0]
 )
 ax[0].set_xlim((0.0, 4500.0))
 ax[0].set_ylabel("")
 ax[0].set_title(
-    "Elapsed Times per Feature Selection Method", fontsize="xx-large",
+    "Average Elapsed Times per Feature Selection Method", fontsize="xx-large",
     x=0.0, y=1., horizontalalignment="left"
 )
 ax[0].tick_params(axis="both", labelsize="large")
+ax[0].set_xlabel("CPU Time [s]", fontsize="large")
 
 df_for_plotting_reduced = df_for_plotting[df_for_plotting["FSS"] != "I-RELIEF"]
 df_for_plotting_reduced = df_for_plotting_reduced[
@@ -97,12 +98,13 @@ df_for_plotting_reduced = df_for_plotting_reduced[
 ]
 
 axBoxPlot2 = sns.boxplot(
-    data=df_for_plotting_reduced, x="Time", y="FSS",
+    data=df_for_plotting_reduced, x="Time [s]", y="FSS",
     width=0.7, fliersize=0., fill=False, ax=ax[1]
 )
 ax[1].set_xlim((0.0, 120.0))
 ax[1].set_ylabel("")
 ax[1].tick_params(axis="both", labelsize="large")
+ax[1].set_xlabel("CPU Time [s]", fontsize="large")
 
 plt.tight_layout()
 plt.show()

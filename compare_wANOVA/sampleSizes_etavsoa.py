@@ -52,11 +52,12 @@ for i, n in enumerate(nSamples):
     y = X["Class"]
     X.drop(columns=["Class"], inplace=True)
     X = X.values
-    pdeSegregate = PDE_Segregate(X, y)
+    pdeSegregate = PDE_Segregate(X, y, delta=1000, pairwise=False, n_jobs=-1)
+    pdeSegregate.fit()
     
-    # Overlapping areas
-    print(f"OA from PDE-Segregate: {pdeSegregate.overlappingAreas[0]}")
-    areaIntersection.append(pdeSegregate.overlappingAreas[0])
+    # Intersection areas
+    print(f"OA from PDE-Segregate: {pdeSegregate.intersectionAreas[0]}")
+    areaIntersection.append(pdeSegregate.intersectionAreas[0])
     
     # ANOVA F-Test
     f_statistic, p_values = f_classif(X, y)
@@ -98,17 +99,17 @@ for i, n in enumerate(nSamples):
 # Plot eta^2 vs OA
 fig, axs = plt.subplots(1, 2, figsize=(11.5, 5.3))
 axs[1].plot(nSamples, etaSquares, '*-', label=r"ANOVA $\eta^2$")
-axs[1].plot(nSamples, areaIntersection, '*-', label="Intersection area")
-axs[1].legend()
-axs[1].set_title(f"ANOVA $\eta^2$ vs intersection area (PDE-Segregate)")
-axs[1].set_xlabel("Number of samples in each class")
+axs[1].plot(nSamples, areaIntersection, '*-', label=r"PDE-Segregate $A_i$")
+axs[1].legend(fontsize='large', bbox_to_anchor=(0.48, 0.5))
+axs[1].set_title(f"ANOVA $\eta^2$ vs PDE-Segregate $A_i$", fontsize='x-large')
+axs[1].set_xlabel("Number of samples in each class", fontsize='large')
 axs[1].grid(visible=True)
 
 # Plot F-ratio
-axs[0].plot(nSamples, fratios, '*-', label=r"F-ratio", color="black")
+axs[0].plot(nSamples, fratios, '*-', color="black")
 axs[0].legend()
-axs[0].set_title("ANOVA F-ratio")
-axs[0].set_xlabel("Number of samples in each class")
+axs[0].set_title("ANOVA F-Ratio", fontsize='x-large')
+axs[0].set_xlabel("Number of samples in each class", fontsize='large')
 axs[0].grid(visible=True)
 
 plt.tight_layout()

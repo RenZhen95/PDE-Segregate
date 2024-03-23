@@ -54,24 +54,26 @@ import matplotlib.pyplot as plt
 # ax[0].grid(visible=True)
 # ax[1].grid(visible=True)
 
-fig2, ax2 = plt.subplots(1, 1)
-# ax2.plot(Xgrid, pde_own1, label=r"$\hat{p}_{\bar{f}_{2,c1}}$")
-ax2.plot(Xgrid, pde_own1, linestyle="dotted")
-
-ax2.plot(Xgrid, pde_own2, label=r"$\hat{p}_{\bar{f}_{2,c2}}$")
-# ax2.plot(Xgrid, pde_own2, linestyle="dotted")
-
-ax2.plot(Xgrid, pde_own3, label=r"$\hat{p}_{\bar{f}_{2,c3}}$")
-# ax2.plot(Xgrid, pde_own3, linestyle="dotted")
-
 # Getting intersection area
 yStack = []
+
+fig2, ax2 = plt.subplots(1, 1)
+# ax2.plot(Xgrid, pde_own1, label=r"$\hat{p}_{\bar{f}_{2,c_1}}$")
 # yStack.append(pde_own1)
+ax2.plot(Xgrid, pde_own1, linestyle="dotted")
+
+
+ax2.plot(Xgrid, pde_own2, label=r"$\hat{p}_{\bar{f}_{2,c_2}}$")
 yStack.append(pde_own2)
+# ax2.plot(Xgrid, pde_own2, linestyle="dotted")
+
+ax2.plot(Xgrid, pde_own3, label=r"$\hat{p}_{\bar{f}_{2,c_3}}$")
 yStack.append(pde_own3)
+# ax2.plot(Xgrid, pde_own3, linestyle="dotted")
+
 yIntersection = np.amin(yStack, axis=0)
 OA = np.trapz(yIntersection, Xgrid)
-_label = r"$A_{i, \bar{f}_{2}}^3 = $"
+_label = r"$A_{2,c_{2}c_{3}} = $"
 _label += str(round(OA,3))
 fill_poly = ax2.fill_between(
     Xgrid, 0, yIntersection, label=_label,
@@ -83,7 +85,6 @@ ax2.grid(visible=True)
 plt.xlim((-0.005, 1.005))
 plt.xlabel(r"$\bar{f}_{2}$", fontsize='x-large')
 plt.ylabel(r"$\hat{p}_{\bar{f}_{2}}$    ", fontsize='x-large', rotation=0)
-plt.legend(fontsize='xx-large', loc="upper left", bbox_to_anchor=(0.54, 1.02))
+plt.legend(fontsize='xx-large', loc="upper left", bbox_to_anchor=(0.47, 1.02))
 plt.tight_layout()
 plt.show()
-# fig2.savefig("gamm_multiclass_k1w2.png", format="png")
