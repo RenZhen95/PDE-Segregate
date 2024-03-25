@@ -80,34 +80,6 @@ APA: Kraskov, A., Stögbauer, H., & Grassberger, P. (2004). Estimating mutual in
 MISTAKE: A new improved filter-based feature selection model for high-dimensional data
 https://link.springer.com/article/10.1007/s11227-019-02975-7
 
-Classifiers:
-SVM {'C': [1,10,100,1000], 'gamma': [0.001,0.0001], 'kernel': ['rbf']}
-kNN {nNeighbors=(3, 5, 7, 9)}
-Naive Bayes 
-LDA
-
-Experimental Setup:
-1. Data preprocessing:
- - Standardize X element such that columns of X are centered to have mean 0 and scaled to have standard
-   deviation 1 (MATLAB: zscore(X))
- - y labels are (somehow) updated according to the following scheme:
-   --------------------------------
-       function Y = update_label(Y)
-       uy = unique(Y);
-       miny = min(uy);
-       if miny==-1
-           Y = (Y+1)/2+1;
-       else
-           Y = Y-miny+1;
-       end
-   --------------------------------
- - Genes whose p-values<0.05 are also further removed
-
-2. Cai selected for top features ranging from 5-30, increments of 1
-3. LOOCV (repeated ten times)
-   - provides an unbiased estimate of the generalization error
-   - 5-fold CV on training data for hyperparameter tuning
-
 ------------------------------------------------------------------------------------------------------------------
 Writing points
 Datasets citations:
