@@ -127,6 +127,12 @@ class PDE_Segregate():
             cStack = np.array(cStack)
             self.intersectionAreas = np.mean(cStack, axis=0)
 
+        # Get feature importances as expressed in terms of computed intersection areas
+        self.feature_importances_ = 1/self.intersectionAreas
+
+        # Get rankings of features ordered from most important to least
+        self.top_features_ = self.get_topnFeatures(self.X.shape[1])
+
     def compute_intersectionArea(self, feat_idx, pairwise):
         """
         Compute intersection area between estimated PDEs.

@@ -16,7 +16,6 @@ sys.path.append(
         os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     )
 )
-from anova import anova
 from pde_segregate import PDE_Segregate
 
 # Taking the top nRetainedFeatures
@@ -26,166 +25,191 @@ def get_indsTopnFeatures(_importances, _n):
         key=lambda i: _importances[i], reverse=True
     )[:_n]
 
-if len(sys.argv) < 3:
+if len(sys.argv) < 2:
     print(
-        "Possible usage: python3 featureSelection_synthetic.py " +
-        "<processedDatasets> <nRetainedFeatures> <fsResults_matlab> <savefolder>"
+        "Possible usage: python3 featureSelection_synthetic.py <processedDatasets>"
     )
     sys.exit(1)
 else:
     synthetic_datasets_pkl = Path(sys.argv[1])
-    nRetainedFeatures = int(sys.argv[2])
-    # fsResults_matlab_folder = Path(sys.argv[3])
-    # savefolder = Path(sys.argv[4])
+
+nRetainedFeatures = 10
 
 with open(synthetic_datasets_pkl, "rb") as handle:
     synthetic_datasets = pickle.load(handle)
 
-
-# # === === === ===
-# # Reading the feature rankings, output from the feature selection methods ran on MATLAB
-# ReliefI_dict = defaultdict()
-# ReliefLM_dict = defaultdict()
-# for f in os.scandir(fsResults_matlab_folder):
-#     ds_name = f.name.split('_')[0]
-#     if "ReliefI" in f.name:
-#         tmpDF_RI = pd.read_csv(f, header=None).values
-#         ReliefI_dict[ds_name] = tmpDF_RI.reshape((tmpDF_RI.shape[0],))
-#     elif "ReliefLM" in f.name:
-#         # Taking only NN of 7 due to computational load
-#         # (suggested by author as good rule of thumb)
-#         tmpDF_RLM = pd.read_csv(f, header=None).values
-#         ReliefLM_dict[ds_name] = tmpDF_RLM.reshape((tmpDF_RLM.shape[0],))
-
-
 # === === === ===
 # Carrying out feature selection for each dataset
-dataset_inds_topFeatures = defaultdict()
+elapsed_times = pd.DataFrame(
+    data=np.zeros((50*3*2, 9)),
+    columns=[
+        "RlfF",
+        "MSurf",
+        "RFGini",
+        "MI",
+        "FT",
+        "OA",
+        "dataset",
+        "iteration",
+        "n_obs"
+    ]
+)
+elapsed_times["dataset"] = elapsed_times["dataset"].astype("object")
 
-elapsed_times_perDS = defaultdict()
+scores_df = pd.DataFrame(
+    data=np.zeros((100*50*3, 9)),
+    columns=[
+        "feature",
+        "RlfF",
+        "MSurf",
+        "RFGini",
+        "MI",
+        "FT",
+        "OA",
+        "iteration",
+        "n_obs"
+    ]
+)
+scores_df["feature"] = np.tile(np.arange(0, 100, 1), 150)
+scores_df_dict = {"ANDOR": scores_df.copy(), "ADDER": scores_df.copy()}
 
-rankings = defaultdict()
-count_top10 = defaultdict()
+rank_df = pd.DataFrame(
+    data=np.zeros((10*50*3, 9)),
+    columns=[
+        "rank",
+        "RlfF",
+        "MSurf",
+        "RFGini",
+        "MI",
+        "FT",
+        "OA",
+        "iteration",
+        "n_obs"
+    ]
+)
+rank_df["rank"] = np.tile(np.arange(0, 10, 1), 150)
+rank_df_dict = {"ANDOR": rank_df.copy(), "ADDER": rank_df.copy()}
 
+count_time = 0
 for dataset in ["ANDOR", "ADDER"]:
-    for iter in synthetic_datasets.keys():
-        elapsed_times = defaultdict()
-    
-        print(f"Dealing with iteration {iter} ... ")
-        X = synthetic_datasets[iter][dataset]['X']
-        y = synthetic_datasets[iter][dataset]['y']
+    print(f"=== === Dataset: {dataset} === ===")
+    count = 0
+    count_r = 0
 
-        # === === === === === === ===
-        # FEATURE RANKING METHODS
-        # From scikit-rebate (https://github.com/EpistasisLab/scikit-rebate)
-        # ReliefF
-        tRlfF_start = process_time()
-        RlfF = ReliefF(n_neighbors=7, n_jobs=-1) # From Cai, 2014
-        RlfF.fit(X, y)
-        tRlfF_stop = process_time()
-        tRlfF = tRlfF_stop - tRlfF_start
+    for n_obs in synthetic_datasets.keys():
+        print(f"n_obs: {n_obs}")
+        n_obs_datasets = synthetic_datasets[n_obs]
 
-        # MultiSURF
-        tMSurf_start = process_time()
-        MSurf = MultiSURF(n_jobs=-1)
-        MSurf.fit(X, y)
-        tMSurf_stop = process_time()
-        tMSurf = tMSurf_stop - tMSurf_start
-    
-        # From scikit-learn
-        # Mutual Information
-        tMI_start = process_time()
-        resMI = mutual_info_classif(X, y, n_neighbors=7, random_state=0)
-        tMI_stop = process_time()
-        tMI = tMI_stop - tMI_start
-    
-        # ANOVA F-value
-        tFT_start = process_time()
-        resFT_stat, resFT_p = f_classif(X, y)
-        tFT_stop = process_time()
-        tFT = tFT_stop - tFT_start
-    
-        # Random forest ensemble data mining to increase information gain/reduce impurity
-        tRF_start = process_time()
-        rfGini = RandomForestClassifier(
-            n_estimators=1000, criterion="gini", random_state=0, n_jobs=-1
-        )
-        rfGini.fit(X,y)
-        tRF_stop = process_time()
-        tRF = tRF_stop - tRF_start
-    
-        # Proposed algorithm
-        # Overlapping Areas of PDEs (total)
-        tTotal_start = process_time()
-        pdeSegregate_total = PDE_Segregate(
-            integration_method="trapz", delta=1000, bw_method="scott",
-            pairwise=False, n_jobs=-1
-        )
-        pdeSegregate_total.fit(X, y)
-        tTotal_stop = process_time()
-        tTotal = tTotal_stop - tTotal_start
-    
-        # === === === === === === ===
-        # GETTING TOP N FEATURES
-        inds_topFeatures_RlfF = get_indsTopnFeatures(
-            RlfF.feature_importances_, nRetainedFeatures
-        )
-        inds_topFeatures_MSurf = get_indsTopnFeatures(
-            MSurf.feature_importances_, nRetainedFeatures
-        )
-        # inds_topFeatures_RlfI = get_indsTopnFeatures(
-        #     ReliefI_dict[dataset], nRetainedFeatures
-        # )
-        # inds_topFeatures_RlfLM = get_indsTopnFeatures(
-        #     ReliefLM_dict[dataset], nRetainedFeatures
-        # )
-        inds_topFeatures_MI = get_indsTopnFeatures(
-            resMI, nRetainedFeatures
-        )
-        inds_topFeatures_RFGini = get_indsTopnFeatures(
-            rfGini.feature_importances_, nRetainedFeatures
-        )
-        inds_topFeatures_FT = get_indsTopnFeatures(
-            resFT_stat, nRetainedFeatures
-        )
-        inds_topFeatures_OAtotal = pdeSegregate_total.get_topnFeatures(
-            nRetainedFeatures
-        )
-        print(inds_topFeatures_RlfF)
-        print(inds_topFeatures_MSurf)
-        print(inds_topFeatures_MI)
-        print(inds_topFeatures_FT)
-        print(inds_topFeatures_OAtotal)
-        sys.exit()
-        # inds_topFeatures = {
-        #     "RlfF": inds_topFeatures_RlfF,
-        #     "MSurf": inds_topFeatures_MSurf,
-        #     "RlfI": inds_topFeatures_RlfI,
-        #     "RlfLM": inds_topFeatures_RlfLM,
-        #     "MI": inds_topFeatures_MI,
-        #     "RFGini": inds_topFeatures_RFGini,
-        #     "FT": inds_topFeatures_FT,
-        #     "OAtotal": inds_topFeatures_OAtotal,
-        #     "OApw": inds_topFeatures_OApw
-        # }
-        # dataset_inds_topFeatures[dataset] = inds_topFeatures
-    
-        # # === === === === === === ===
-        # # GET ELAPSED TIME
-        # elapsed_times = {
-        #     "RlfF": tRlfF,
-        #     "MSurf": tMSurf,
-        #     "MI": tMI,
-        #     "RFGini": tRF,
-        #     "FT": tFT,
-        #     "OAtotal": tTotal,
-        #     "OApw": tPW
-        # }
-        # elapsed_times_perDS[dataset] = elapsed_times
+        for i in n_obs_datasets.keys():
+            print(f"Iteration {i} ... ")
+            X = n_obs_datasets[i][dataset]['X']
+            y = n_obs_datasets[i][dataset]['y']
 
-# with open(savefolder.joinpath(f"top{nRetainedFeatures}Features.pkl"), "wb") as handle:
-#     pickle.dump(dataset_inds_topFeatures, handle)
-# with open(savefolder.joinpath(f"fsElapsedTimes.pkl"), "wb") as handle:
-#     pickle.dump(elapsed_times_perDS, handle)
+            # === === === === === === ===
+            # FEATURE RANKING METHODS
+            # From scikit-rebate (https://github.com/EpistasisLab/scikit-rebate)
+            # ReliefF
+            tRlfF_start = process_time()
+            RlfF = ReliefF(n_neighbors=7, n_jobs=-1) # From Cai, 2014
+            RlfF.fit(X, y)
+            tRlfF_stop = process_time()
+            tRlfF = tRlfF_stop - tRlfF_start
+
+            # MultiSURF
+            tMSurf_start = process_time()
+            MSurf = MultiSURF(n_jobs=-1)
+            MSurf.fit(X, y)
+            tMSurf_stop = process_time()
+            tMSurf = tMSurf_stop - tMSurf_start
+
+            # From scikit-learn
+            # Mutual Information
+            tMI_start = process_time()
+            resMI = mutual_info_classif(X, y, n_neighbors=7, random_state=0)
+            tMI_stop = process_time()
+            tMI = tMI_stop - tMI_start
+
+            # ANOVA F-value
+            tFT_start = process_time()
+            resFT_stat, resFT_p = f_classif(X, y)
+            tFT_stop = process_time()
+            tFT = tFT_stop - tFT_start
+
+            # Random forest ensemble data mining to increase information gain/reduce impurity
+            tRF_start = process_time()
+            rfGini = RandomForestClassifier(
+                n_estimators=1000, criterion="gini", random_state=0, n_jobs=-1
+            )
+            rfGini.fit(X, y)
+            tRF_stop = process_time()
+            tRF = tRF_stop - tRF_start
+
+            # Proposed algorithm
+            # Overlapping Areas of PDEs (total)
+            tPDE_start = process_time()
+            pdeSegregate = PDE_Segregate(
+                integration_method="trapz", delta=1000, bw_method="scott",
+                pairwise=False, n_jobs=-1
+            )
+            pdeSegregate.fit(X, y)
+            tPDE_stop = process_time()
+            tPDE = tPDE_stop - tPDE_start
+
+            # === === === === === === ===
+            # GETTING TOP N FEATURES
+            rank_df_dict[dataset].loc[count_r:count_r+9, "RlfF"] = get_indsTopnFeatures(
+                RlfF.feature_importances_, nRetainedFeatures
+            )
+            rank_df_dict[dataset].loc[count_r:count_r+9, "MSurf"] = get_indsTopnFeatures(
+                MSurf.feature_importances_, nRetainedFeatures
+            )
+            rank_df_dict[dataset].loc[count_r:count_r+9, "MI"] = get_indsTopnFeatures(
+                resMI, nRetainedFeatures
+            )
+            rank_df_dict[dataset].loc[count_r:count_r+9, "RFGini"] = get_indsTopnFeatures(
+                rfGini.feature_importances_, nRetainedFeatures
+            )
+            rank_df_dict[dataset].loc[count_r:count_r+9, "FT"] = get_indsTopnFeatures(
+                resFT_stat, nRetainedFeatures
+            )
+            rank_df_dict[dataset].loc[count_r:count_r+9, "OA"] = pdeSegregate.top_features_[
+                :nRetainedFeatures
+            ]
+            rank_df_dict[dataset].loc[count_r:count_r+9, "iteration"] = np.repeat([i], 10)
+            rank_df_dict[dataset].loc[count_r:count_r+9, "n_obs"] = np.repeat([n_obs], 10)
+            
+            scores_df_dict[dataset].loc[count:count+99, "RlfF"] = RlfF.feature_importances_
+            scores_df_dict[dataset].loc[count:count+99, "MSurf"] = MSurf.feature_importances_
+            scores_df_dict[dataset].loc[count:count+99, "MI"] = resMI
+            scores_df_dict[dataset].loc[count:count+99, "RFGini"] = rfGini.feature_importances_
+            scores_df_dict[dataset].loc[count:count+99, "FT"] = resFT_stat
+            scores_df_dict[dataset].loc[count:count+99, "OA"] = pdeSegregate.feature_importances_
+
+            scores_df_dict[dataset].loc[count:count+99, "iteration"] = np.repeat([i], 100)
+            scores_df_dict[dataset].loc[count:count+99, "n_obs"] = np.repeat([n_obs], 100)
+
+            count += 100
+            count_r += 10
+
+            # === === === === === === ===
+            # GET ELAPSED TIME
+            elapsed_times.at[count_time, "RlfF"] = tRlfF
+            elapsed_times.at[count_time, "MSurf"] = tMSurf
+            elapsed_times.at[count_time, "RFGini"] = tRF
+            elapsed_times.at[count_time, "MI"] = tMI
+            elapsed_times.at[count_time, "FT"] = tFT
+            elapsed_times.at[count_time, "OA"] = tPDE
+            elapsed_times.at[count_time, "dataset"] = dataset
+            elapsed_times.at[count_time, "iteration"] = i
+            elapsed_times.at[count_time, "n_obs"] = n_obs
+            count_time += 1
+
+with open("ranks.pkl", "wb") as handle:
+    pickle.dump(rank_df_dict, handle)
+
+with open("feature_scores.pkl", "wb") as handle:
+    pickle.dump(scores_df_dict, handle)
+
+elapsed_times.to_csv("elapsed_times.csv", sep=',')
 
 sys.exit(0)

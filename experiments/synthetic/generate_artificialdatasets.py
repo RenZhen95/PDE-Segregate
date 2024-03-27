@@ -41,11 +41,11 @@ def gen_4():
     rlvnt_0 = gen_3()
     for seq in rlvnt_0:
       seq.append(0)
-    
+
     rlvnt_1 = gen_3()
     for seq in rlvnt_1:
       seq.append(1)
-    
+
     return rlvnt_0 + rlvnt_1
 
 def reconstruct_continuousVariables(x, seed=0):
@@ -160,19 +160,24 @@ def adder(n_obs=50, n_I=92, seed=0):
 # random variations
 int_seeds = (np.random.default_rng(seed=0)).integers(0, 10000, 50)
 
-contsynt_datasets = defaultdict()
-discsynt_datasets = defaultdict()
+contsynt_nobs_datasets = defaultdict()
+discsynt_nobs_datasets = defaultdict()
 
-for n_obs in [20, 50, 70]:
+for n_obs in [30, 50, 70]:
+    contsynt_datasets = defaultdict()
+    discsynt_datasets = defaultdict()
+
     for i, s in enumerate(int_seeds):
         # ANDOR dataset with binary features
         X_ANDOR, y_ANDOR = andor(n_obs=n_obs, n_I=90, seed=int(s))
         X_contANDOR = reconstruct_continuousVariables(X_ANDOR, seed=int(s))
-        
+        y_ANDOR = np.array(y_ANDOR) + 1
+
         # ADDER dataset with multiclass features
         X_ADDER, y_ADDER = adder(n_obs=n_obs, n_I=92, seed=int(s))
         X_contADDER = reconstruct_continuousVariables(X_ADDER, seed=int(s))
-    
+        y_ADDER = np.array(y_ADDER) + 1
+
         contsynt_datasets[i] = {
           "ANDOR": {'X': X_contANDOR, 'y': y_ANDOR},
           "ADDER": {'X': X_contADDER, 'y': y_ADDER}
@@ -182,9 +187,12 @@ for n_obs in [20, 50, 70]:
           "ADDER": {'X': X_ADDER, 'y': y_ADDER}
         }
 
+    contsynt_nobs_datasets[n_obs] = contsynt_datasets
+    discsynt_nobs_datasets[n_obs] = discsynt_datasets
+
 with open("cont_synthetic_datasets.pkl", "wb") as handle:
-    pickle.dump(contsynt_datasets, handle)
+    pickle.dump(contsynt_nobs_datasets, handle)
 with open("disc_synthetic_datasets.pkl", "wb") as handle:
-    pickle.dump(discsynt_datasets, handle)
+    pickle.dump(discsynt_nobs_datasets, handle)
 
 sys.exit()
