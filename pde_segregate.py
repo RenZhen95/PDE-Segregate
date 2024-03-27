@@ -8,18 +8,12 @@ from joblib import Parallel, delayed
 
 class PDE_Segregate():
     def __init__(
-            self, X, y, integration_method="trapz", delta=500, bw_method="scott",
-            pairwise=False, n_jobs=1
+            self, integration_method="trapz", delta=1000,
+            bw_method="scott", pairwise=False, n_jobs=1
     ):
         """
         Parameters
         ----------
-        X : np.array
-         - Dataset with the shape: (n_samples, n_features)
-
-        y : np.array
-         - Class vector
-
         integration_method : str
          - Integration method.
 
@@ -40,8 +34,6 @@ class PDE_Segregate():
         n_jobs : int
          - Number of processors to use. -1 to use all available processors.
         """
-        self.X = X
-        self.y = y
         self.integration_method = integration_method
         self.delta = delta
         self.bw_method = bw_method
@@ -49,7 +41,22 @@ class PDE_Segregate():
         self.n_jobs = n_jobs
 
         # Initializing the x-axis grid
-        self.XGrid = np.linspace(0, 1, self.delta)
+        self.XGrid = np.linspace(-1.0, 2.0, self.delta)
+
+    def fit(self, X, y):
+        """
+        Get the intersection areas of the PDE of class-segregated groups.
+
+        Parameters
+        ----------
+        X : np.array
+         - Dataset with the shape: (n_samples, n_features)
+
+        y : np.array
+         - Class vector
+        """
+        self.X = X
+        self.y = y
 
         # Grouping the samples according to unique y label
         self.y_segregatedGroup = self.segregateX_y()
@@ -78,10 +85,6 @@ class PDE_Segregate():
         self.yLabels = list(self.y_segregatedGroup.keys())
         self.yLabels.sort()
 
-    def fit(self):
-        """
-        Get the intersection areas of the PDE of class-segregated groups.
-        """
         # Construct kerndel density estimator per class for every feature
         delayed_calls = (
             delayed(
@@ -246,25 +249,10 @@ class PDE_Segregate():
 
         return _subX
 
-    def get_scores(self):
-        """
-        Get feature importance based on feature's ability to segregate the
-        PDEs of the class-segregated samples.c Returns the negative intersection
-        areas of the PDEs, such that the lower the score (i.e. the more
-        negative the area), the less important the feature.
-
-        Returns
-        -------
-        numpy.array
-         - The NEGATIVE of the computed integral quantifying the intersection
-           of the areas below all the probability density estimate curves of
-           each feature.
-        """
-        return -1 * self.intersectionAreas
-
     def get_topnFeatures(self, n):
         """
-        Returns the indices of the top n features.
+        Returns the indices of the top n features (smaller intersection areas
+        are more important).
 
         Parameters
         ----------
@@ -277,37 +265,11 @@ class PDE_Segregate():
          - List of top n features, starting from the most to least important
            features.
         """
-        res_tmp = self.intersectionAreas.copy()
-        res_tmpSorted = np.sort(res_tmp) # sorts smallest to largest
-
-        inds_topFeatures = []
-
-        counter = 1
-
-        for i in res_tmpSorted:
-            sel_inds = np.where(res_tmp==i)[0]
-
-            # Dealing with intersection areas, which multiple features
-            # share (e.g. 0.0)
-            if len(sel_inds) == 1:
-                inds_topFeatures.append(sel_inds[0])
-                counter += 1
-            else:
-                print(
-                    f"The following {len(sel_inds)} features:\n{sel_inds}" +
-                    "\nhave the same computed intersection intersection areas: " +
-                    f"{i}"
-                )
-                for ind in sel_inds:
-                    inds_topFeatures.append(ind)
-                    counter += 1
-                    if counter==n+1:
-                        break
-
-            if counter==n+1:
-                break
-
-        return inds_topFeatures
+        return sorted(
+            range(len(self.intersectionAreas)),
+            key=lambda i: self.intersectionAreas[i],
+            reverse=False
+        )[:n]
 
     def plot_overlapAreas(
             self, feat_idx, feat_names=None, _ylim=None, _title=None,
