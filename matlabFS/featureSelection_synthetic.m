@@ -1,14 +1,20 @@
 % Feature selection of I-RELIEF and LHR
 % The coded is implemented based on Y.J, Sun's IRELIEF.
 clear; clc
-% pyenv(Version="/usr/bin/python3.11");
+pyenv(Version="/usr/bin/python3.11");
 pickle = py.importlib.import_module('pickle');
-cd('../experiments/synthetic/')
+cd('/home/liaw/repo/PDE-SegregateDatasets/synthetic/Electrical/')
 
-handle = py.open("cont_synthetic_datasets.pkl", 'rb');
+%datasetname = "ANDORdiscrete";
+%datasetname = "ADDERdiscrete";
+
+%datasetname = "ANDORcontinuous";
+datasetname = "ADDERcontinuous";
+
+handle = py.open(datasetname + "_datasets.pkl", 'rb');
 processedDatasets_dict = pickle.load(handle);
 handle.close();
-cd('../../matlabFS/')
+cd('/home/liaw/repo/PDE-Segregate/matlabFS/')
 
 % Parameters of IRELIEF taken from Y.J, Sun
 it = 15;
@@ -26,153 +32,74 @@ datasets_30obs = dictionary(processedDatasets(30));
 datasets_50obs = dictionary(processedDatasets(50));
 datasets_70obs = dictionary(processedDatasets(70));
 
-% ANDOR
-Weights_LM_30_ANDOR = zeros(100, 50);
-Weights_LM_50_ANDOR = zeros(100, 50);
-Weights_LM_70_ANDOR = zeros(100, 50);
-Weights_I_30_ANDOR = zeros(100, 50);
-Weights_I_50_ANDOR = zeros(100, 50);
-Weights_I_70_ANDOR = zeros(100, 50);
-tANDOR_LM = zeros(3, 50);
-tANDOR_I = zeros(3, 50);
-
-% ADDER
-Weights_LM_30_ADDER = zeros(100, 50);
-Weights_LM_50_ADDER = zeros(100, 50);
-Weights_LM_70_ADDER = zeros(100, 50);
-Weights_I_30_ADDER = zeros(100, 50);
-Weights_I_50_ADDER = zeros(100, 50);
-Weights_I_70_ADDER = zeros(100, 50);
-tADDER_LM = zeros(3, 50);
-tADDER_I = zeros(3, 50);
+Weights_LM_30 = zeros(100, 50);
+Weights_LM_50 = zeros(100, 50);
+Weights_LM_70 = zeros(100, 50);
+Weights_I_30 = zeros(100, 50);
+Weights_I_50 = zeros(100, 50);
+Weights_I_70 = zeros(100, 50);
+t_LM = zeros(3, 50);
+t_I  = zeros(3, 50);
 
 for i=0:49
     dataset_iteration30 = dictionary(datasets_30obs(i));
     dataset_iteration50 = dictionary(datasets_50obs(i));
     dataset_iteration70 = dictionary(datasets_70obs(i));
 
+    X30 = double(dataset_iteration30('X'));
+    y30 = double(dataset_iteration30('y'))';
 
-    % ANDOR
-    ANDOR_30 = dictionary(dataset_iteration30("ANDOR"));
-    ANDOR_30_X = double(ANDOR_30('X'));
-    ANDOR_30_y = double(ANDOR_30('y'))';
+    X50 = double(dataset_iteration50('X'));
+    y50 = double(dataset_iteration50('y'))';
 
-    ANDOR_50 = dictionary(dataset_iteration50("ANDOR"));
-    ANDOR_50_X = double(ANDOR_50('X'));
-    ANDOR_50_y = double(ANDOR_50('y'))';
-
-    ANDOR_70 = dictionary(dataset_iteration70("ANDOR"));
-    ANDOR_70_X = double(ANDOR_70('X'));
-    ANDOR_70_y = double(ANDOR_70('y'))';
+    X70 = double(dataset_iteration70('X'));
+    y70 = double(dataset_iteration70('y'))';
 
     % LH-Relief
-    tStart_LH_30_ANDOR = cputime;
-    [Weight_LM_30_ANDOR, ~] = LHR(ANDOR_30_X', ANDOR_30_y, Para4IRelief);
-    Weights_LM_30_ANDOR(:,i+1) = Weight_LM_30_ANDOR;
-    tEnd_LH_30_ANDOR = cputime - tStart_LH_30_ANDOR;
-    tANDOR_LM(1, i+1) = tEnd_LH_30_ANDOR;
+    tStart_LH_30 = cputime;
+    [Weight_LM_30, ~] = LHR(X30', y30, Para4IRelief);
+    Weights_LM_30(:,i+1) = Weight_LM_30;
+    tEnd_LH_30 = cputime - tStart_LH_30;
+    t_LM(1, i+1) = tEnd_LH_30;
 
-    tStart_LH_50_ANDOR = cputime;
-    [Weight_LM_50_ANDOR, ~] = LHR(ANDOR_50_X', ANDOR_50_y, Para4IRelief);
-    Weights_LM_50_ANDOR(:,i+1) = Weight_LM_50_ANDOR;
-    tEnd_LH_50_ANDOR = cputime - tStart_LH_50_ANDOR;
-    tANDOR_LM(2, i+1) = tEnd_LH_50_ANDOR;
+    tStart_LH_50 = cputime;
+    [Weight_LM_50, ~] = LHR(X50', y50, Para4IRelief);
+    Weights_LM_50(:,i+1) = Weight_LM_50;
+    tEnd_LH_50 = cputime - tStart_LH_50;
+    t_LM(2, i+1) = tEnd_LH_50;
 
-    tStart_LH_70_ANDOR = cputime;
-    [Weight_LM_70_ANDOR, ~] = LHR(ANDOR_70_X', ANDOR_70_y, Para4IRelief);
-    Weights_LM_70_ANDOR(:,i+1) = Weight_LM_70_ANDOR;
-    tEnd_LH_70_ANDOR = cputime - tStart_LH_70_ANDOR;
-    tANDOR_LM(3, i+1) = tEnd_LH_70_ANDOR;
-
-    % I-Relief
-    tStart_I_30_ANDOR = cputime;
-    [Weight_I_30_ANDOR, ~] = IMRelief_1(ANDOR_30_X', ANDOR_30_y, Para4IRelief);
-    Weights_I_30_ANDOR(:,i+1) = Weight_I_30_ANDOR;
-    tEnd_I_30_ANDOR = cputime - tStart_I_30_ANDOR;
-    tANDOR_I(1, i+1) = tEnd_I_30_ANDOR;
-    
-    tStart_I_50_ANDOR = cputime;
-    [Weight_I_50_ANDOR, ~] = IMRelief_1(ANDOR_50_X', ANDOR_50_y, Para4IRelief);
-    Weights_I_50_ANDOR(:,i+1) = Weight_I_50_ANDOR;
-    tEnd_I_50_ANDOR = cputime - tStart_I_50_ANDOR;
-    tANDOR_I(2, i+1) = tEnd_I_50_ANDOR;
-
-    tStart_I_70_ANDOR = cputime;
-    [Weight_I_70_ANDOR, ~] = IMRelief_1(ANDOR_70_X', ANDOR_70_y, Para4IRelief);
-    Weights_I_70_ANDOR(:,i+1) = Weight_I_70_ANDOR;
-    tEnd_I_70_ANDOR = cputime - tStart_I_70_ANDOR;
-    tANDOR_I(3, i+1) = tEnd_I_70_ANDOR;
-
-
-    % ADDER
-    ADDER_30 = dictionary(dataset_iteration30("ADDER"));
-    ADDER_30_X = double(ADDER_30('X'));
-    ADDER_30_y = double(ADDER_30('y'))';
-
-    ADDER_50 = dictionary(dataset_iteration50("ADDER"));
-    ADDER_50_X = double(ADDER_50('X'));
-    ADDER_50_y = double(ADDER_50('y'))';
-
-    ADDER_70 = dictionary(dataset_iteration70("ADDER"));
-    ADDER_70_X = double(ADDER_70('X'));
-    ADDER_70_y = double(ADDER_70('y'))';
-
-    % LH-Relief
-    tStart_LH_30_ADDER = cputime;
-    [Weight_LM_30_ADDER, ~] = LHR(ADDER_30_X', ADDER_30_y, Para4IRelief);
-    Weights_LM_30_ADDER(:,i+1) = Weight_LM_30_ADDER;
-    tEnd_LH_30_ADDER = cputime - tStart_LH_30_ADDER;
-    tADDER_LM(1, i+1) = tEnd_LH_30_ADDER;
-
-    tStart_LH_50_ADDER = cputime;
-    [Weight_LM_50_ADDER, ~] = LHR(ADDER_50_X', ADDER_50_y, Para4IRelief);
-    Weights_LM_50_ADDER(:,i+1) = Weight_LM_50_ADDER;
-    tEnd_LH_50_ADDER = cputime - tStart_LH_50_ADDER;
-    tADDER_LM(2, i+1) = tEnd_LH_50_ADDER;
-
-    tStart_LH_70_ADDER = cputime;
-    [Weight_LM_70_ADDER, ~] = LHR(ADDER_70_X', ADDER_70_y, Para4IRelief);
-    Weights_LM_70_ADDER(:,i+1) = Weight_LM_70_ADDER;
-    tEnd_LH_70_ADDER = cputime - tStart_LH_70_ADDER;
-    tADDER_LM(3, i+1) = tEnd_LH_70_ADDER;
+    tStart_LH_70 = cputime;
+    [Weight_LM_70, ~] = LHR(X70', y70, Para4IRelief);
+    Weights_LM_70(:,i+1) = Weight_LM_70;
+    tEnd_LH_70 = cputime - tStart_LH_70;
+    t_LM(3, i+1) = tEnd_LH_70;
 
     % I-Relief
-    tStart_I_30_ADDER = cputime;
-    [Weight_I_30_ADDER, ~] = IMRelief_1(ADDER_30_X', ADDER_30_y, Para4IRelief);
-    Weights_I_30_ADDER(:,i+1) = Weight_I_30_ADDER;
-    tEnd_I_30_ADDER = cputime - tStart_I_30_ADDER;
-    tADDER_I(1, i+1) = tEnd_I_30_ADDER;
+    tStart_I_30 = cputime;
+    [Weight_I_30, ~] = IMRelief_1(X30', y30, Para4IRelief);
+    Weights_I_30(:,i+1) = Weight_I_30;
+    tEnd_I_30 = cputime - tStart_I_30;
+    t_I(1, i+1) = tEnd_I_30;
     
-    tStart_I_50_ADDER = cputime;
-    [Weight_I_50_ADDER, ~] = IMRelief_1(ADDER_50_X', ADDER_50_y, Para4IRelief);
-    Weights_I_50_ADDER(:,i+1) = Weight_I_50_ADDER;
-    tEnd_I_50_ADDER = cputime - tStart_I_50_ADDER;
-    tADDER_I(2, i+1) = tEnd_I_50_ADDER;
+    tStart_I_50 = cputime;
+    [Weight_I_50, ~] = IMRelief_1(X50', y50, Para4IRelief);
+    Weights_I_50(:,i+1) = Weight_I_50;
+    tEnd_I_50 = cputime - tStart_I_50;
+    t_I(2, i+1) = tEnd_I_50;
 
-    tStart_I_70_ADDER = cputime;
-    [Weight_I_70_ADDER, ~] = IMRelief_1(ADDER_70_X', ADDER_70_y, Para4IRelief);
-    Weights_I_70_ADDER(:,i+1) = Weight_I_70_ADDER;
-    tEnd_I_70_ADDER = cputime - tStart_I_70_ADDER;
-    tADDER_I(3, i+1) = tEnd_I_70_ADDER;
+    tStart_I_70 = cputime;
+    [Weight_I_70, ~] = IMRelief_1(X70', y70, Para4IRelief);
+    Weights_I_70(:,i+1) = Weight_I_70;
+    tEnd_I_70 = cputime - tStart_I_70;
+    t_I(3, i+1) = tEnd_I_70;
 end
 
 % Save scores and elapsed times
-% ANDOR
-writematrix(Weights_LM_30_ANDOR);
-writematrix(Weights_LM_50_ANDOR);
-writematrix(Weights_LM_70_ANDOR);
-writematrix(Weights_I_30_ANDOR);
-writematrix(Weights_I_50_ANDOR);
-writematrix(Weights_I_70_ANDOR);
-writematrix(tANDOR_LM);
-writematrix(tANDOR_I);
-
-% ADDER
-writematrix(Weights_LM_30_ADDER);
-writematrix(Weights_LM_50_ADDER);
-writematrix(Weights_LM_70_ADDER);
-writematrix(Weights_I_30_ADDER);
-writematrix(Weights_I_50_ADDER);
-writematrix(Weights_I_70_ADDER);
-writematrix(tADDER_LM);
-writematrix(tADDER_I);
+writematrix(Weights_LM_30, datasetname + "WeightsLM_30.csv");
+writematrix(Weights_LM_50, datasetname + "WeightsLM_50.csv");
+writematrix(Weights_LM_70, datasetname + "WeightsLM_70.csv");
+writematrix(Weights_I_30, datasetname + "WeightsI_30.csv");
+writematrix(Weights_I_50, datasetname + "WeightsI_50.csv");
+writematrix(Weights_I_70, datasetname + "WeightsI_70.csv");
+writematrix(t_LM, datasetname + "_tLM.csv");
+writematrix(t_I, datasetname + "_tI.csv");

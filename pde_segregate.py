@@ -127,7 +127,8 @@ class PDE_Segregate():
             cStack = np.array(cStack)
             self.intersectionAreas = np.mean(cStack, axis=0)
 
-        # Get feature importances as expressed in terms of computed intersection areas
+        # Get feature importances as expressed in terms of reciprocal of
+        # computed intersection areas
         self.feature_importances_ = 1/self.intersectionAreas
 
         # Get rankings of features ordered from most important to least

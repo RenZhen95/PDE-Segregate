@@ -160,12 +160,18 @@ def adder(n_obs=50, n_I=92, seed=0):
 # random variations
 int_seeds = (np.random.default_rng(seed=0)).integers(0, 10000, 50)
 
-contsynt_nobs_datasets = defaultdict()
-discsynt_nobs_datasets = defaultdict()
+ANDORcontsynt_nobs_datasets = defaultdict()
+ADDERcontsynt_nobs_datasets = defaultdict()
+
+ANDORdiscsynt_nobs_datasets = defaultdict()
+ADDERdiscsynt_nobs_datasets = defaultdict()
 
 for n_obs in [30, 50, 70]:
-    contsynt_datasets = defaultdict()
-    discsynt_datasets = defaultdict()
+    ANDORcontsynt_datasets = defaultdict()
+    ADDERcontsynt_datasets = defaultdict()
+
+    ANDORdiscsynt_datasets = defaultdict()
+    ADDERdiscsynt_datasets = defaultdict()
 
     for i, s in enumerate(int_seeds):
         # ANDOR dataset with binary features
@@ -178,21 +184,26 @@ for n_obs in [30, 50, 70]:
         X_contADDER = reconstruct_continuousVariables(X_ADDER, seed=int(s))
         y_ADDER = np.array(y_ADDER) + 1
 
-        contsynt_datasets[i] = {
-          "ANDOR": {'X': X_contANDOR, 'y': y_ANDOR},
-          "ADDER": {'X': X_contADDER, 'y': y_ADDER}
-        }
-        discsynt_datasets[i] = {
-          "ANDOR": {'X': X_ANDOR, 'y': y_ANDOR},
-          "ADDER": {'X': X_ADDER, 'y': y_ADDER}
-        }
+        ANDORcontsynt_datasets[i] = {'X': X_contANDOR, 'y': y_ANDOR}
+        ADDERcontsynt_datasets[i] = {'X': X_contADDER, 'y': y_ADDER}
 
-    contsynt_nobs_datasets[n_obs] = contsynt_datasets
-    discsynt_nobs_datasets[n_obs] = discsynt_datasets
+        ANDORdiscsynt_datasets[i] = {'X': X_ANDOR, 'y': y_ANDOR}
+        ADDERdiscsynt_datasets[i] = {'X': X_ADDER, 'y': y_ADDER}
 
-with open("cont_synthetic_datasets.pkl", "wb") as handle:
-    pickle.dump(contsynt_nobs_datasets, handle)
-with open("disc_synthetic_datasets.pkl", "wb") as handle:
-    pickle.dump(discsynt_nobs_datasets, handle)
+    ANDORcontsynt_nobs_datasets[n_obs] = ANDORcontsynt_datasets
+    ADDERcontsynt_nobs_datasets[n_obs] = ADDERcontsynt_datasets
+
+    ANDORdiscsynt_nobs_datasets[n_obs] = ANDORdiscsynt_datasets
+    ADDERdiscsynt_nobs_datasets[n_obs] = ADDERdiscsynt_datasets
+
+with open("ANDORcontinuous_datasets.pkl", "wb") as handle:
+    pickle.dump(ANDORcontsynt_nobs_datasets, handle)
+with open("ADDERcontinuous_datasets.pkl", "wb") as handle:
+    pickle.dump(ADDERcontsynt_nobs_datasets, handle)
+
+with open("ANDORdiscrete_datasets.pkl", "wb") as handle:
+    pickle.dump(ANDORdiscsynt_nobs_datasets, handle)
+with open("ADDERdiscrete_datasets.pkl", "wb") as handle:
+    pickle.dump(ADDERdiscsynt_nobs_datasets, handle)
 
 sys.exit()
