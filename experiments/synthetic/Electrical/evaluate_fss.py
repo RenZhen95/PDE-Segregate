@@ -2,25 +2,37 @@ import pickle
 import os, sys
 import numpy as np
 import pandas as pd
+from pathlib import Path
 import seaborn as sns; sns.set()
 import matplotlib.pyplot as plt
 
+if len(sys.argv) < 4:
+    print(
+        "Possible usage: python3.11 evaluate_fss.py <feature_scores> <ranks> " +
+        "<elapsed_times>"
+    )
+    sys.exit(1)
+else:
+    feature_scores = Path(sys.argv[1])
+    ranks_ = Path(sys.argv[2])
+    elapsed_times = Path(sys.argv[3])
+    
 # Reading the feature scores
-with open("feature_scores.pkl", "rb" ) as handle:
+with open(feature_scores, "rb" ) as handle:
     feature_scores = pickle.load(handle)
 
 ANDOR_scoresdf = feature_scores["ANDOR"]
 ADDER_scoresdf = feature_scores["ADDER"]
 
 # Reading the top 10 features
-with open("ranks.pkl", "rb") as handle:
+with open(ranks_, "rb") as handle:
     ranks = pickle.load(handle)
 
 ANDOR_rankdf = ranks["ANDOR"]
 ADDER_rankdf = ranks["ADDER"]
 
 # Reading the elapsed times for each FSS method
-elapsed_times_df = pd.read_csv("elapsed_times.csv", index_col=0)
+elapsed_times_df = pd.read_csv(elapsed_times, index_col=0)
 
 # Features Summary
 # ANDOR

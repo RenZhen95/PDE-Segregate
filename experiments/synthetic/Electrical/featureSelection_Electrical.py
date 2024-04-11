@@ -199,10 +199,10 @@ for n_obs in synthetic_datasets.keys():
         count_time += 1
 
 with open(f"{dataset_name}ranks.pkl", "wb") as handle:
-    pickle.dump(rank_df_dict, handle)
+    pickle.dump(rank_df, handle)
 
 with open(f"{dataset_name}feature_scores.pkl", "wb") as handle:
-    pickle.dump(scores_df_dict, handle)
+    pickle.dump(scores_df, handle)
 
 elapsed_times.to_csv(f"{dataset_name}elapsed_times.csv", sep=',')
 
