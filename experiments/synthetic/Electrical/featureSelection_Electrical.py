@@ -13,7 +13,9 @@ from sklearn.feature_selection import mutual_info_classif, f_classif
 
 sys.path.append(
     os.path.dirname(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+        os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+        )
     )
 )
 from pde_segregate import PDE_Segregate
@@ -150,6 +152,16 @@ for n_obs in synthetic_datasets.keys():
         pdeSegregate.fit(X, y)
         tPDE_stop = process_time()
         tPDE = tPDE_stop - tPDE_start
+
+        # Overlapping Areas of PDEs (pairwise)
+        tPDE_start_pair = process_time()
+        pdeSegregatePair = PDE_Segregate(
+            integration_method="trapz", delta=1000, bw_method="scott",
+            pairwise=True, n_jobs=-1
+        )
+        pdeSegregatePair.fit(X, y)
+        tPDE_stop_pair = process_time()
+        tPDE_pair = tPDE_stop_pair - tPDE_start_pair
 
         # === === === === === === ===
         # GETTING TOP N FEATURES
