@@ -8,7 +8,7 @@ from joblib import Parallel, delayed
 
 class PDE_Segregate():
     def __init__(
-            self, integration_method="trapz", delta=1000,
+            self, integration_method="trapz", delta=1500,
             bw_method="scott", pairwise=False, n_jobs=1
     ):
         """

@@ -37,29 +37,30 @@ else:
     synthetic_datasets_pkl = Path(sys.argv[1])
     dataset_name = sys.argv[2]
 
-nRetainedFeatures = 10
+nRetainedFeatures = 10 # Top 10 % of 100 (Canedo, 2012)
 
 with open(synthetic_datasets_pkl, "rb") as handle:
     synthetic_datasets = pickle.load(handle)
 
 # === === === ===
 # Carrying out feature selection for each dataset
+# 50 iterations x 3 different number of samples
 elapsed_times = pd.DataFrame(
-    data=np.zeros((50*3, 8)),
+    data=np.zeros((50*3, 9)),
     columns=[
         "RlfF",
         "MSurf",
         "RFGini",
         "MI",
         "FT",
-        "OA",
+        "OA", "OApw",
         "iteration",
         "n_obs"
     ]
 )
 
 scores_df = pd.DataFrame(
-    data=np.zeros((100*50*3, 9)),
+    data=np.zeros((50*3*100, 10)),
     columns=[
         "feature",
         "RlfF",
@@ -67,7 +68,7 @@ scores_df = pd.DataFrame(
         "RFGini",
         "MI",
         "FT",
-        "OA",
+        "OA", "OApw",
         "iteration",
         "n_obs"
     ]
@@ -75,7 +76,7 @@ scores_df = pd.DataFrame(
 scores_df["feature"] = np.tile(np.arange(0, 100, 1), 150)
 
 rank_df = pd.DataFrame(
-    data=np.zeros((10*50*3, 9)),
+    data=np.zeros((50*3*10, 10)),
     columns=[
         "rank",
         "RlfF",
@@ -83,7 +84,7 @@ rank_df = pd.DataFrame(
         "RFGini",
         "MI",
         "FT",
-        "OA",
+        "OA", "OApw",
         "iteration",
         "n_obs"
     ]
@@ -146,7 +147,7 @@ for n_obs in synthetic_datasets.keys():
         # Overlapping Areas of PDEs (total)
         tPDE_start = process_time()
         pdeSegregate = PDE_Segregate(
-            integration_method="trapz", delta=1000, bw_method="scott",
+            integration_method="trapz", delta=1500, bw_method="scott",
             pairwise=False, n_jobs=-1
         )
         pdeSegregate.fit(X, y)
@@ -154,14 +155,14 @@ for n_obs in synthetic_datasets.keys():
         tPDE = tPDE_stop - tPDE_start
 
         # Overlapping Areas of PDEs (pairwise)
-        tPDE_start_pair = process_time()
-        pdeSegregatePair = PDE_Segregate(
-            integration_method="trapz", delta=1000, bw_method="scott",
+        tPDEpw_start = process_time()
+        pdeSegregatePW = PDE_Segregate(
+            integration_method="trapz", delta=1500, bw_method="scott",
             pairwise=True, n_jobs=-1
         )
-        pdeSegregatePair.fit(X, y)
-        tPDE_stop_pair = process_time()
-        tPDE_pair = tPDE_stop_pair - tPDE_start_pair
+        pdeSegregatePW.fit(X, y)
+        tPDEpw_stop = process_time()
+        tPDEpw = tPDEpw_stop - tPDEpw_start
 
         # === === === === === === ===
         # GETTING TOP N FEATURES
@@ -183,6 +184,9 @@ for n_obs in synthetic_datasets.keys():
         rank_df.loc[count_r:count_r+9, "OA"] = pdeSegregate.top_features_[
             :nRetainedFeatures
         ]
+        rank_df.loc[count_r:count_r+9, "OApw"] = pdeSegregatePW.top_features_[
+            :nRetainedFeatures
+        ]
         rank_df.loc[count_r:count_r+9, "iteration"] = np.repeat([i], 10)
         rank_df.loc[count_r:count_r+9, "n_obs"] = np.repeat([n_obs], 10)
         count_r += 10
@@ -193,6 +197,7 @@ for n_obs in synthetic_datasets.keys():
         scores_df.loc[count:count+99, "RFGini"] = rfGini.feature_importances_
         scores_df.loc[count:count+99, "FT"] = resFT_stat
         scores_df.loc[count:count+99, "OA"] = pdeSegregate.feature_importances_
+        scores_df.loc[count:count+99, "OApw"] = pdeSegregatePW.feature_importances_
 
         scores_df.loc[count:count+99, "iteration"] = np.repeat([i], 100)
         scores_df.loc[count:count+99, "n_obs"] = np.repeat([n_obs], 100)
@@ -206,6 +211,7 @@ for n_obs in synthetic_datasets.keys():
         elapsed_times.at[count_time, "MI"] = tMI
         elapsed_times.at[count_time, "FT"] = tFT
         elapsed_times.at[count_time, "OA"] = tPDE
+        elapsed_times.at[count_time, "OApw"] = tPDEpw
         elapsed_times.at[count_time, "iteration"] = i
         elapsed_times.at[count_time, "n_obs"] = n_obs
         count_time += 1
