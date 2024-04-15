@@ -6,46 +6,47 @@ from pathlib import Path
 import seaborn as sns; sns.set()
 import matplotlib.pyplot as plt
 
-if len(sys.argv) < 4:
+if len(sys.argv) < 3:
     print(
-        "Possible usage: python3.11 evaluate_fss.py <feature_scores> <ranks> " +
-        "<elapsed_times>"
+        "Possible usage: python3.11 evaluate_fss.py <resultsFolder> <datasetName>"
     )
     sys.exit(1)
 else:
-    feature_scores = Path(sys.argv[1])
-    ranks_ = Path(sys.argv[2])
-    elapsed_times = Path(sys.argv[3])
+    resultsFolder = Path(sys.argv[1])
+    datasetName = sys.argv[2]
     
 # Reading the feature scores
-with open(feature_scores, "rb" ) as handle:
-    feature_scores = pickle.load(handle)
-
-ANDOR_scoresdf = feature_scores["ANDOR"]
-ADDER_scoresdf = feature_scores["ADDER"]
+feature_scores_df = pd.read_csv(
+    resultsFolder.joinpath(f"{datasetName}_featurescores.csv"), index_col=0
+)
 
 # Reading the top 10 features
-with open(ranks_, "rb") as handle:
-    ranks = pickle.load(handle)
-
-ANDOR_rankdf = ranks["ANDOR"]
-ADDER_rankdf = ranks["ADDER"]
+ranks_df = pd.read_csv(
+    resultsFolder.joinpath(f"{datasetName}_ranks.csv"), index_col=0
+)
 
 # Reading the elapsed times for each FSS method
-elapsed_times_df = pd.read_csv(elapsed_times, index_col=0)
+elapsed_times_df = pd.read_csv(
+    resultsFolder.joinpath(f"{datasetName}_elapsedtimes.csv"), index_col=0
+)
 
 # Features Summary
 # ANDOR
 # - Relevant   : 0, 1, 2, 3
 # - Redundant  : 4, 5, 6, 7
 # - Correlated : 8, 9
-ANDOR_relevant   = [0, 1, 2, 3]
-ANDOR_redundant  = [4, 5, 6, 7]
-ANDOR_correlated = [8, 9]
+if datasetName[0:5] == "ANDOR":
+    relevant_list   = [0, 1, 2, 3]
+    redundant_list  = [4, 5, 6, 7]
+    correlated_list = [8, 9]
 # ADDER
 # - Relevant   : 0, 1, 2
 # - Redundant  : 3, 4, 5
 # - Correlated : 6, 7
+elif datasetName[0:5] == "ADDER":
+    relevant_list   = [0, 1, 2]
+    redundant_list  = [3, 4, 5]
+    correlated_list = [6, 7]
 
 def count_instances_intop10(_top10, _list=[]):
     list_FSS = list(_top10.columns)
@@ -62,73 +63,92 @@ def count_instances_intop10(_top10, _list=[]):
 
     return count
 
-# groupeddf_count = ANDOR_rankdf.groupby(["iteration", "n_obs"]).apply(
-#     count_instances_intop10, _list=ANDOR_relevant
-# )
-# relevant_top10count = groupeddf_count.reset_index("iteration")
-# relevant_top10count = (relevant_top10count.groupby("n_obs")).mean()
-# fss_list = list(relevant_top10count.columns)
-# fss_list.remove("iteration")
-# relevant_meancount_intop10 = pd.DataFrame(
-#     data=np.zeros((len(fss_list)*3, 3)), columns=["Mean", "FSS", "n_obs"]
-# )
-# i = 0
-# for fss in fss_list:
-#     for n in relevant_top10count.index:
-#         relevant_meancount_intop10.at[i, "Mean"] = relevant_top10count.at[n, fss]
-#         relevant_meancount_intop10.at[i, "FSS"] = fss
-#         relevant_meancount_intop10.at[i, "n_obs"] = n
-#         i += 1
+groupeddf_relvcount = ranks_df.groupby(["iteration", "n_obs"]).apply(
+    count_instances_intop10, _list=relevant_list
+)
 
-# print(relevant_meancount_intop10)
-# sns.barplot(data=relevant_meancount_intop10, x="FSS", y="Mean", hue="n_obs")
-# plt.tight_layout()
-
-# Ranking features
-def get_rankings(_importances):
-    list_FSS = list(_importances.columns)
-    list_FSS.remove("feature")
+def check_ifrelevantistop(_top10, _list=[]):
+    list_FSS = list(_top10.columns)
+    list_FSS.remove("rank")
     list_FSS.remove("iteration")
     list_FSS.remove("n_obs")
 
-    n_features = _importances.shape[0]
-    rank = pd.DataFrame(
-        data=np.zeros((n_features, len(list_FSS))), columns=list_FSS
+    _top10_nfirst = _top10.iloc[:len(_list),:]
+    relv_atthetop = pd.Series(
+        data=[False for i in range(len(list_FSS))], index=list_FSS
     )
+
     for fss in list_FSS:
-        feature_importance = _importances[fss].reset_index(drop=True)
+        if set(_top10_nfirst[fss].values) == set(_list):
+            relv_atthetop[fss] = True
+            
+    return relv_atthetop
 
-        # Sorted features from most important to least
-        sortedfeatures = sorted(
-            range(n_features), key=lambda i: feature_importance[i], reverse=True
-        )
-
-        # Rank of each feature
-        feature_ranks = np.zeros(n_features)
-        for r, f in enumerate(sortedfeatures):
-            feature_ranks[f] = r
-
-        rank[fss] = feature_ranks
-
-    return rank
-
-groupeddf_ranks = ANDOR_scoresdf.groupby(["iteration", "n_obs"]).apply(
-    get_rankings
+groupeddf_relvattop = ranks_df.groupby(["iteration", "n_obs"]).apply(
+    check_ifrelevantistop, _list=relevant_list
 )
-print(groupeddf_ranks)
-groupeddf_ranks.to_csv("rmlater.csv")
 
-groupeddf_ranks_n30 = groupeddf_ranks.xs(30, level=1)
-groupeddf_ranks_n50 = groupeddf_ranks.xs(50, level=1)
-groupeddf_ranks_n70 = groupeddf_ranks.xs(70, level=1)
+# Computing the success rate as defined by Canedo, 2012
+print(groupeddf_relvcount)
+print(groupeddf_relvattop)
 
-ranks_n30_f0 = groupeddf_ranks_n30.xs(0, level=1)
-ranks_n50_f0 = groupeddf_ranks_n50.xs(0, level=1)
-ranks_n70_f0 = groupeddf_ranks_n70.xs(0, level=1)
+fss_list = list(groupeddf_relvattop.columns)
+relvcount = groupeddf_relvcount.xs(30, level=1)
+relvattop = groupeddf_relvattop.xs(30, level=1)
+
+average_successrate = pd.DataFrame(
+    data=np.zeros((3, len(fss_list))), index=[30, 50, 70], columns=fss_list
+)
+print(average_successrate)
+# Metrics according to Kamalov, 2022
+# 1. Simply compare feature significance metric of relevant vs non-relevant features
+# 2. Median rankings across 10 iterations of relevant features
+
+# # Ranking features (Implementation of 2.)
+# def get_rankings(_importances):
+#     list_FSS = list(_importances.columns)
+#     list_FSS.remove("feature")
+#     list_FSS.remove("iteration")
+#     list_FSS.remove("n_obs")
+
+#     n_features = _importances.shape[0]
+#     rank = pd.DataFrame(
+#         data=np.zeros((n_features, len(list_FSS))), columns=list_FSS
+#     )
+#     for fss in list_FSS:
+#         feature_importance = _importances[fss].reset_index(drop=True)
+
+#         # Sorted features from most important to least
+#         sortedfeatures = sorted(
+#             range(n_features), key=lambda i: feature_importance[i], reverse=True
+#         )
+
+#         # Rank of each feature
+#         feature_ranks = np.zeros(n_features)
+#         for r, f in enumerate(sortedfeatures):
+#             feature_ranks[f] = r
+
+#         rank[fss] = feature_ranks
+
+#     return rank
+
+# groupeddf_ranks = ANDOR_scoresdf.groupby(["iteration", "n_obs"]).apply(
+#     get_rankings
+# )
+# print(groupeddf_ranks)
+
+# groupeddf_ranks_n30 = groupeddf_ranks.xs(30, level=1)
+# groupeddf_ranks_n50 = groupeddf_ranks.xs(50, level=1)
+# groupeddf_ranks_n70 = groupeddf_ranks.xs(70, level=1)
+
+# ranks_n30_f0 = groupeddf_ranks_n30.xs(0, level=1)
+# ranks_n50_f0 = groupeddf_ranks_n50.xs(0, level=1)
+# ranks_n70_f0 = groupeddf_ranks_n70.xs(0, level=1)
 
 # print(ranks_n30_f0.median())
 # print(ranks_n50_f0.median())
 # print(ranks_n70_f0.median())
 
-#plt.show()
+# plt.show()
+
 sys.exit()

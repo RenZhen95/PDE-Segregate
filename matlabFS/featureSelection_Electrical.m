@@ -23,7 +23,6 @@ Para4IRelief.distance = 'euclidean';
 Para4IRelief.kernel = 'exp';
 Para4IRelief.Outlier = 0;
 Para4IRelief.sigma = 0.5;
-Para4Relief.KNNpara = 9; % number of the nearest neighbors in KNN
 Para4IRelief.Prob = 'yes';
 Para4IRelief.NN = [7];
 

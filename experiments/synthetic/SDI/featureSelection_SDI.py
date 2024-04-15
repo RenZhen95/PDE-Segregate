@@ -29,7 +29,7 @@ def get_indsTopnFeatures(_importances, _n):
 
 if len(sys.argv) < 2:
     print(
-        "Possible usage: python3 featureSelection_SDI.py <processedDatasets>"
+        "Possible usage: python3 featureSelection_SDI.py <datasetFolder>"
     )
     sys.exit(1)
 else:
