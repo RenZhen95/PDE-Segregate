@@ -20,11 +20,6 @@ else:
     trueSignatures_folder = Path(sys.argv[2])
     nTop = int(sys.argv[3])
 
-# Reading the feature scores
-feature_scores_df = pd.read_csv(
-    resultsFolder.joinpath("SDIfeaturescores.csv"), index_col=0
-)
-
 # Reading the top 10 features
 ranks_df = pd.read_csv(
     resultsFolder.joinpath("SDIranks.csv"), index_col=0
@@ -33,11 +28,6 @@ ranks_df = pd.read_csv(
 only_retain = np.arange(0, nTop, 1)
 ranks_df = ranks_df[ranks_df["rank"].isin(only_retain)]
 print(ranks_df)
-
-# Reading the elapsed times for each FSS method
-elapsed_times_df = pd.read_csv(
-    resultsFolder.joinpath("SDIelapsedtimes.csv"), index_col=0
-)
 
 # Getting true signatures
 nClass2_idxs = [16, 43, 70, 97]
