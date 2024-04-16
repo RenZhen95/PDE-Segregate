@@ -49,6 +49,8 @@ averaged_performance_df = pd.DataFrame(
 performance_df = pd.DataFrame(
     data=np.zeros((3*50*9*5, 5)), columns=["Bal.Acc", "nObs", "Iteration", "FS", "Clf"]
 )
+performance_df["FS"] = performance_df["FS"].astype("object")
+performance_df["Clf"] = performance_df["Clf"].astype("object")
 
 skf = StratifiedKFold(n_splits=3)
 
@@ -66,7 +68,7 @@ for nObs in [30, 50, 70]:
         for fs in fs_methods:
             top_features = ranks_peritr[fs].to_numpy()
             top_features = list(map(int, top_features))
-            X_reduced = X[:,top_features]
+            X_reduced = X[:, top_features]
 
             balAcc_kNN = np.zeros(3)
             balAcc_SVM = np.zeros(3)
@@ -163,5 +165,13 @@ for nObs in [30, 50, 70]:
             performance_df.at[count+4, "FS"] = fs
             performance_df.at[count+4, "Clf"] = "DT"
             count += 5
+
+            break
+        break
+    break
+
+print(performance_df)
+
+print(performance_df.groupby(["nObs", "Clf", "FS"]).mean())
 
 sys.exit(0)
