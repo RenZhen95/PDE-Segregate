@@ -64,7 +64,6 @@ print(nClass4_sel_idx)
 
 Xfolder = datasetFolder.joinpath('X')
 yfolder = datasetFolder.joinpath('y')
-trueSigfolder = datasetFolder.joinpath("trueSignatures")
 
 
 # === === === ===

@@ -41,10 +41,6 @@ ranks = {30: ranks_n30, 50: ranks_n50, 70: ranks_n70}
 
 fs_methods = ["RlfF", "MSurf", "RFGini", "MI", "FT", "OA", "OApw", "IRlf", "LHRlf"]
 
-averaged_performance_df = pd.DataFrame(
-    data=np.zeros((2, 9)), index=["Mean", "S.D"], columns=fs_methods
-)
-
 # 3 nObs x 50 iterations x 9 FS x 5 Classifiers
 performance_df = pd.DataFrame(
     data=np.zeros((3*50*9*5, 5)), columns=["Bal.Acc", "nObs", "Iteration", "FS", "Clf"]
@@ -166,12 +162,8 @@ for nObs in [30, 50, 70]:
             performance_df.at[count+4, "Clf"] = "DT"
             count += 5
 
-            break
-        break
-    break
-
-print(performance_df)
-
-print(performance_df.groupby(["nObs", "Clf", "FS"]).mean())
+averaged_df = performance_df.groupby(["nObs", "FS", "Clf"]).mean()
+averaged_df = averaged_df.drop(columns=["Iteration"])
+averaged_df.to_csv(f"{datasetName}_averagedperformance.csv")
 
 sys.exit(0)
