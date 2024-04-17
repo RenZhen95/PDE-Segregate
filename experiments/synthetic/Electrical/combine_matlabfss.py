@@ -70,83 +70,110 @@ for LHRlf_featurescores in [
             i += 1
 pyFSS_featurescores["LHRlf"] = LHRlf
 
-
-# === === === ===
-# Ranks
-with open(resultsFolder.joinpath(f"{dataset}ranks.pkl"), "rb") as handle:
-    pyFSS_ranks = pickle.load(handle)
-
-def get_rankings(_importances):
-    n_features = len(_importances)
-
-    # Sorted features from most important to least
-    sortedfeatures = sorted(
-        range(n_features), key=lambda i: _importances[i], reverse=True
-    )
-
-    # Rank of each feature
-    feature_ranks = np.zeros(n_features)
-    for r, f in enumerate(sortedfeatures):
-        feature_ranks[f] = r
-
-    return feature_ranks
-
-# Top 10 Features of IRelief
-IRlf_ranks_30 = IRlf_featurescores_30.apply(get_rankings)
-IRlf_ranks_50 = IRlf_featurescores_50.apply(get_rankings)
-IRlf_ranks_70 = IRlf_featurescores_70.apply(get_rankings)
-
-# Top 10 features x 50 iterations x 3 number of observations
-IRlf_ranks = pd.Series(data=np.zeros(10*50*3), name="IRlf")
+# Reading ranks from mRMR (Ding, 2005)
+mRMR_folder = resultsFolder.joinpath("mRMR")
+mRMR_30 = pd.read_csv(
+    mRMR_folder.joinpath(f"{dataset}mRMR_nObs30.csv"), header=None
+)
+mRMR_30 = mRMR_30 - 1
+mRMR_50 = pd.read_csv(
+    mRMR_folder.joinpath(f"{dataset}mRMR_nObs50.csv"), header=None
+)
+mRMR_50 = mRMR_50 - 1
+mRMR_70 = pd.read_csv(
+    mRMR_folder.joinpath(f"{dataset}mRMR_nObs70.csv"), header=None
+)
+mRMR_70 = mRMR_70 - 1
+mRMR = pd.Series(
+    data=np.zeros(
+        mRMR_30.shape[0]*mRMR_30.shape[1]*3
+    ), name="mRMR"
+)
 i = 0
-for IRlf_ranks_df in [IRlf_ranks_30, IRlf_ranks_50, IRlf_ranks_70]:
-    for itr in range(50):
-        for rank in range(10):
-            top_feature = IRlf_ranks_df.loc[:,itr][
-                IRlf_ranks_df.loc[:,itr] == rank
-            ].index[0]
-
-            IRlf_ranks[i] = top_feature
-            i += 1
-pyFSS_ranks["IRlf"] = IRlf_ranks
-
-# Top 10 Features of LHRelief
-LHRlf_ranks_30 = LHRlf_featurescores_30.apply(get_rankings)
-LHRlf_ranks_50 = LHRlf_featurescores_50.apply(get_rankings)
-LHRlf_ranks_70 = LHRlf_featurescores_70.apply(get_rankings)
-
-# Top 10 features x 50 iterations x 3 number of observations
-LHRlf_ranks = pd.Series(data=np.zeros(10*50*3), name="LHRlf")
-i = 0
-for LHRlf_ranks_df in [LHRlf_ranks_30, LHRlf_ranks_50, LHRlf_ranks_70]:
-    for itr in range(50):
-        for rank in range(10):
-            top_feature = LHRlf_ranks_df.loc[:,itr][
-                LHRlf_ranks_df.loc[:,itr] == rank
-            ].index[0]
-
-            LHRlf_ranks[i] = top_feature
-            i += 1
-pyFSS_ranks["LHRlf"] = LHRlf_ranks
+for mRMR_ranks in [mRMR_30, mRMR_50, mRMR_70]:
+    print(mRMR_ranks)
+    # for iteration in mRMR_ranks.columns:
+    #     for feature in mRMR_ranks.index:
+    #         mRMR[i] = mRMR_ranks.at[feature, iteration]
+    #         i += 1
 
 
-# === === === ===
-# Elapsed Times
-py_times = pd.read_csv(
-    resultsFolder.joinpath(f"{dataset}elapsed_times.csv"), index_col=0
-)
-IRlf_times = pd.read_csv(
-    IRlf_folder.joinpath(f"{dataset}_tI.csv"), header=None
-)
-LHRlf_times = pd.read_csv(
-    LHRlf_folder.joinpath(f"{dataset}_tLM.csv"), header=None
-)
-py_times["IRlf"]  = IRlf_times.stack().values
-py_times["LHRlf"] = LHRlf_times.stack().values
+# # === === === ===
+# # Ranks
+# with open(resultsFolder.joinpath(f"{dataset}ranks.pkl"), "rb") as handle:
+#     pyFSS_ranks = pickle.load(handle)
 
-pyFSS_featurescores.to_csv(f"{dataset}_featurescores.csv")
-pyFSS_ranks.to_csv(f"{dataset}_ranks.csv")
-py_times.to_csv(f"{dataset}_elapsedtimes.csv")
+# def get_rankings(_importances):
+#     n_features = len(_importances)
+
+#     # Sorted features from most important to least
+#     sortedfeatures = sorted(
+#         range(n_features), key=lambda i: _importances[i], reverse=True
+#     )
+
+#     # Rank of each feature
+#     feature_ranks = np.zeros(n_features)
+#     for r, f in enumerate(sortedfeatures):
+#         feature_ranks[f] = r
+
+#     return feature_ranks
+
+# # Top 10 Features of IRelief
+# IRlf_ranks_30 = IRlf_featurescores_30.apply(get_rankings)
+# IRlf_ranks_50 = IRlf_featurescores_50.apply(get_rankings)
+# IRlf_ranks_70 = IRlf_featurescores_70.apply(get_rankings)
+
+# # Top 10 features x 50 iterations x 3 number of observations
+# IRlf_ranks = pd.Series(data=np.zeros(10*50*3), name="IRlf")
+# i = 0
+# for IRlf_ranks_df in [IRlf_ranks_30, IRlf_ranks_50, IRlf_ranks_70]:
+#     for itr in range(50):
+#         for rank in range(10):
+#             top_feature = IRlf_ranks_df.loc[:,itr][
+#                 IRlf_ranks_df.loc[:,itr] == rank
+#             ].index[0]
+
+#             IRlf_ranks[i] = top_feature
+#             i += 1
+# pyFSS_ranks["IRlf"] = IRlf_ranks
+
+# # Top 10 Features of LHRelief
+# LHRlf_ranks_30 = LHRlf_featurescores_30.apply(get_rankings)
+# LHRlf_ranks_50 = LHRlf_featurescores_50.apply(get_rankings)
+# LHRlf_ranks_70 = LHRlf_featurescores_70.apply(get_rankings)
+
+# # Top 10 features x 50 iterations x 3 number of observations
+# LHRlf_ranks = pd.Series(data=np.zeros(10*50*3), name="LHRlf")
+# i = 0
+# for LHRlf_ranks_df in [LHRlf_ranks_30, LHRlf_ranks_50, LHRlf_ranks_70]:
+#     for itr in range(50):
+#         for rank in range(10):
+#             top_feature = LHRlf_ranks_df.loc[:,itr][
+#                 LHRlf_ranks_df.loc[:,itr] == rank
+#             ].index[0]
+
+#             LHRlf_ranks[i] = top_feature
+#             i += 1
+# pyFSS_ranks["LHRlf"] = LHRlf_ranks
+
+
+# # === === === ===
+# # Elapsed Times
+# py_times = pd.read_csv(
+#     resultsFolder.joinpath(f"{dataset}elapsed_times.csv"), index_col=0
+# )
+# IRlf_times = pd.read_csv(
+#     IRlf_folder.joinpath(f"{dataset}_tI.csv"), header=None
+# )
+# LHRlf_times = pd.read_csv(
+#     LHRlf_folder.joinpath(f"{dataset}_tLM.csv"), header=None
+# )
+# py_times["IRlf"]  = IRlf_times.stack().values
+# py_times["LHRlf"] = LHRlf_times.stack().values
+
+# pyFSS_featurescores.to_csv(f"{dataset}_featurescores.csv")
+# pyFSS_ranks.to_csv(f"{dataset}_ranks.csv")
+# py_times.to_csv(f"{dataset}_elapsedtimes.csv")
 
 sys.exit(0)
 
