@@ -35,10 +35,50 @@ for fs in average_time_df.columns:
         plot_df.at[i, "FS"] = fs
         i += 1
 
-sns.barplot(
-    data=plot_df, x="FS", y="Average Time", hue="# Class"
+plt.rcParams["font.family"] = ["Arial"]
+fig, (ax_upper, ax_lower) = plt.subplots(2, 1, sharex=True)
+upperplt = sns.barplot(
+    data=plot_df, x="FS", y="Average Time", hue="# Class", ax=ax_upper
 )
-plt.xlabel("Feature Selection Method")
+ax_upper.set_ylabel("")
+lowerplt = sns.barplot(
+    data=plot_df, x="FS", y="Average Time", hue="# Class", ax=ax_lower,
+    legend=False
+)
+ax_lower.set_ylabel("")
+
+ax_upper.set_ylim(50, 150) # Upper end
+ax_lower.set_ylim(0, 25)   # Lower end
+
+# Hide the spines between ax_2 and ax_1
+ax_upper.spines.bottom.set_visible(False)
+ax_lower.spines.top.set_visible(False)
+
+ax_upper.tick_params(labeltop=False)
+
+ax_lower.xaxis.tick_bottom()
+
+# Creating cut-out slanted lines
+# Idea: Line objects in four corners of the axes
+
+d = .5  # proportion of vertical to horizontal extent of the slanted line
+kwargs = dict(
+    marker=[(-1, -d), (1, d)], markersize=12,
+    linestyle="none", color='k', mec='k', mew=1, clip_on=False
+)
+ax_upper.plot([0, 1], [0, 0], transform=ax_upper.transAxes, **kwargs)
+ax_lower.plot([0, 1], [1, 1], transform=ax_lower.transAxes, **kwargs)
+
+ax_upper.set(ylabel=None)
+ax_lower.set(ylabel=None)
+
+plt.xlabel("Feature Selection Method", fontsize="medium")
+fig.supylabel("Average Computational Time [s]", fontsize="medium")
+fig.suptitle("SDI Datasets", fontsize="large")
+
+fig.tight_layout()
+plt.subplots_adjust(left=0.115, top=0.92, hspace=0.075)
+
 plt.show()
 
 sys.exit(0)

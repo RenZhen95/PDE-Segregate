@@ -17,7 +17,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.metrics import balanced_accuracy_score
 
 if len(sys.argv) < 2:
-    print("Possible usage: python3.11 3foldcv.py <SDIFolder>")
+    print("Possible usage: python3.11 10foldcv.py <SDIFolder>")
     sys.exit(1)
 else:
     SDIFolder = Path(sys.argv[1])
@@ -58,16 +58,18 @@ ranks_nClass3 = ranks_df[ranks_df["nClass"] == 3.0]
 ranks_nClass4 = ranks_df[ranks_df["nClass"] == 4.0]
 ranks = {2: ranks_nClass2, 3: ranks_nClass3, 4: ranks_nClass4}
 
-fs_methods = ["RlfF", "MSurf", "RFGini", "MI", "FT", "OA", "OApw", "IRlf", "LHRlf"]
+fs_methods = [
+    "RlfF", "MSurf", "IRlf", "LHRlf", "mRMR", "RFGini", "MI", "FT", "OA", "OApw"
+]
 
-# 3 nClass x 4 iterations x 9 FS x 5 Classifiers
+# 3 nClass x 4 iterations x 10 FS x 5 Classifiers
 performance_df = pd.DataFrame(
-    data=np.zeros((3*4*9*5, 5)), columns=["Bal.Acc", "nClass", "Iteration", "FS", "Clf"]
+    data=np.zeros((3*4*10*5, 5)), columns=["Bal.Acc", "nClass", "Iteration", "FS", "Clf"]
 )
 performance_df["FS"] = performance_df["FS"].astype("object")
 performance_df["Clf"] = performance_df["Clf"].astype("object")
 
-skf = StratifiedKFold(n_splits=3)
+skf = StratifiedKFold(n_splits=10)
 
 count = 0
 for nClass in [2, 3, 4]:
@@ -76,9 +78,12 @@ for nClass in [2, 3, 4]:
         ranks_peritr = ranks_peritr.drop(
             columns=["rank", "iteration", "nClass"]
         )
+        print(f"nClass: {nClass} | itr: {itr}")
+        print(ranks_peritr)
 
         X = X_dict[nClass][itr].values
         y = y_dict[nClass][itr]
+        print(X.shape)
 
         for fs in fs_methods:
             top_features = ranks_peritr[fs].to_numpy()
@@ -86,11 +91,11 @@ for nClass in [2, 3, 4]:
 
             X_reduced = X[:,top_features]
 
-            balAcc_kNN = np.zeros(3)
-            balAcc_SVM = np.zeros(3)
-            balAcc_NB  = np.zeros(3)
-            balAcc_LDA = np.zeros(3)
-            balAcc_DT  = np.zeros(3)
+            balAcc_kNN = np.zeros(10)
+            balAcc_SVM = np.zeros(10)
+            balAcc_NB  = np.zeros(10)
+            balAcc_LDA = np.zeros(10)
+            balAcc_DT  = np.zeros(10)
 
             # Carry out stratified k-fold
             for fold, (train_index, test_index) in enumerate(skf.split(X_reduced, y)):
@@ -182,8 +187,10 @@ for nClass in [2, 3, 4]:
             performance_df.at[count+4, "Clf"] = "DT"
             count += 5
 
+performance_df.to_csv(SDIFolder.joinpath("Results/10foldcv.csv"))
+
 averaged_df = performance_df.groupby(["nClass", "FS", "Clf"]).mean()
 averaged_df = averaged_df.drop(columns=["Iteration"])
-averaged_df.to_csv("SDI_averagedperformance.csv")
+averaged_df.to_csv(SDIFolder.joinpath("Results/10foldcv_averaged.csv"))
 
 sys.exit(0)

@@ -17,7 +17,7 @@ from sklearn.metrics import balanced_accuracy_score
 
 if len(sys.argv) < 3:
     print(
-        "Possible usage: python3.11 3foldcv.py <ElectricalFolder> <datasetName>"
+        "Possible usage: python3.11 10stratifiedfoldcv.py <ElectricalFolder> <datasetName>"
     )
     sys.exit(1)
 else:
@@ -39,16 +39,18 @@ ranks_n50 = ranks_df[ranks_df["n_obs"] == 50.0]
 ranks_n70 = ranks_df[ranks_df["n_obs"] == 70.0]
 ranks = {30: ranks_n30, 50: ranks_n50, 70: ranks_n70}
 
-fs_methods = ["RlfF", "MSurf", "RFGini", "MI", "FT", "OA", "OApw", "IRlf", "LHRlf"]
+fs_methods = [
+    "RlfF", "MSurf", "IRlf", "LHRlf", "mRMR", "RFGini", "MI", "FT", "OA", "OApw",
+]
 
-# 3 nObs x 50 iterations x 9 FS x 5 Classifiers
+# 3 nObs x 50 iterations x 10 FS x 5 Classifiers
 performance_df = pd.DataFrame(
-    data=np.zeros((3*50*9*5, 5)), columns=["Bal.Acc", "nObs", "Iteration", "FS", "Clf"]
+    data=np.zeros((3*50*10*5, 5)), columns=["Bal.Acc", "nObs", "Iteration", "FS", "Clf"]
 )
 performance_df["FS"] = performance_df["FS"].astype("object")
 performance_df["Clf"] = performance_df["Clf"].astype("object")
 
-skf = StratifiedKFold(n_splits=3)
+skf = StratifiedKFold(n_splits=10)
 
 count = 0
 for nObs in [30, 50, 70]:
@@ -57,20 +59,24 @@ for nObs in [30, 50, 70]:
         ranks_peritr = ranks_peritr.drop(
             columns=["rank", "iteration", "n_obs"]
         )
+        print(f"nObs: {nObs} | itr: {itr}")
+        print(ranks_peritr)
 
         X = datasets[nObs][itr]['X']
         y = datasets[nObs][itr]['y']
+        print(X.shape)
 
         for fs in fs_methods:
             top_features = ranks_peritr[fs].to_numpy()
             top_features = list(map(int, top_features))
+
             X_reduced = X[:, top_features]
 
-            balAcc_kNN = np.zeros(3)
-            balAcc_SVM = np.zeros(3)
-            balAcc_NB  = np.zeros(3)
-            balAcc_LDA = np.zeros(3)
-            balAcc_DT  = np.zeros(3)
+            balAcc_kNN = np.zeros(10)
+            balAcc_SVM = np.zeros(10)
+            balAcc_NB  = np.zeros(10)
+            balAcc_LDA = np.zeros(10)
+            balAcc_DT  = np.zeros(10)
 
             # Carry out stratified k-fold
             for fold, (train_index, test_index) in enumerate(skf.split(X_reduced, y)):
@@ -162,8 +168,14 @@ for nObs in [30, 50, 70]:
             performance_df.at[count+4, "Clf"] = "DT"
             count += 5
 
+performance_df.to_csv(
+    ElectricalFolder.joinpath(f"Results/{datasetName}10foldcv.csv")
+)
+
 averaged_df = performance_df.groupby(["nObs", "FS", "Clf"]).mean()
 averaged_df = averaged_df.drop(columns=["Iteration"])
-averaged_df.to_csv(f"{datasetName}_averagedperformance.csv")
+averaged_df.to_csv(
+    ElectricalFolder.joinpath(f"Results/{datasetName}10foldcv_averaged.csv")
+)
 
 sys.exit(0)

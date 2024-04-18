@@ -23,11 +23,6 @@ ranks_df = pd.read_csv(
     resultsFolder.joinpath(f"{datasetName}_ranks.csv"), index_col=0
 )
 
-# Reading the elapsed times for each FSS method
-elapsed_times_df = pd.read_csv(
-    resultsFolder.joinpath(f"{datasetName}_elapsedtimes.csv"), index_col=0
-)
-
 # Features Summary
 features = feature_scores_df["feature"].to_numpy()
 nFeatures = len(list(set(features)))
@@ -141,7 +136,11 @@ average_successrate.loc[70] = avrsuccess_obs70
 
 print(average_successrate)
 
-average_successrate.to_csv(f"{datasetName}_successrates.csv")
+average_successrate.to_csv(
+    Path(os.path.dirname(
+        resultsFolder
+    )).joinpath(f"Results/{datasetName}_successrates.csv")
+)
 
 sys.exit(0)
 
@@ -195,5 +194,3 @@ sys.exit(0)
 # print(ranks_n70_f0.median())
 
 # plt.show()
-
-sys.exit()
