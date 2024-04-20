@@ -64,9 +64,9 @@ nFeatures = len(list(set(features)))
 
 # Parameters for success metric according to Canedo, 2012
 # Total number of irrelevant features
-It = 4000
-# Total number of relevant features
-Rt = 60
+It = 4060 - 3
+# Total number of relevant features (one per dimension)
+Rt = 3
 # Alpha
 _alpha = min(0.5, Rt/It)
 
@@ -82,14 +82,43 @@ def count_instances_attop(_top):
     nClass = list(set(_top["nClass"].to_numpy()))[0]
     itr = list(set(_top["iteration"].to_numpy()))[0]
 
-    _truegenes = np.reshape(trueSignatures[nClass][itr].values, -1)
+    # Idea: Only one feature should be selected from each of the three
+    # dimensions, meaning there should only be three relevant features
+
+    # As soon as one feature is selected from a dimension, the rest are
+    # redundant, and will be considered "irrelevant"
+    _truegenes_dim1 = trueSignatures[nClass][itr].loc[0].values
+    _truegenes_dim2 = trueSignatures[nClass][itr].loc[1].values
+    _truegenes_dim3 = trueSignatures[nClass][itr].loc[2].values
+
+    _flag_dim1 = pd.Series(
+        data=[False for _ in range(len(list_FSS))], index=list_FSS
+    )
+    _flag_dim2 = pd.Series(
+        data=[False for _ in range(len(list_FSS))], index=list_FSS
+    )
+    _flag_dim3 = pd.Series(
+        data=[False for _ in range(len(list_FSS))], index=list_FSS
+    )
 
     count = pd.Series(data=np.zeros(len(list_FSS)), index=list_FSS)
 
     for i in _top.index:
         for fss in count.index:
-            if _top.at[i, fss] in _truegenes:
+            # Checking if a top feature is in the first dimension
+            if (_top.at[i, fss] in _truegenes_dim1) and (not _flag_dim1[fss]):
                 count.at[fss] += 1
+                _flag_dim1[fss] = True
+
+            # Checking if a top feature is in the second dimension
+            elif (_top.at[i, fss] in _truegenes_dim2) and (not _flag_dim2[fss]):
+                count.at[fss] += 1
+                _flag_dim2[fss] = True
+
+            # Checking if a top feature is in the third dimension
+            elif (_top.at[i, fss] in _truegenes_dim3) and (not _flag_dim3[fss]):
+                count.at[fss] += 1
+                _flag_dim3[fss] = True
 
     return count
 
@@ -106,17 +135,27 @@ def check_ifrelevantistop(_top):
     nClass = list(set(_top["nClass"].to_numpy()))[0]
     itr = list(set(_top["iteration"].to_numpy()))[0]
 
-    _truegenes = np.reshape(trueSignatures[nClass][itr].values, -1)
+    _truegenes_dim1 = trueSignatures[nClass][itr].loc[0].values
+    _truegenes_dim2 = trueSignatures[nClass][itr].loc[1].values
+    _truegenes_dim3 = trueSignatures[nClass][itr].loc[2].values
 
-    # 3 dimensions, 20 genes per dimension = 60 true genes
-    _top_60first = _top.iloc[:60,:]
+    _flag_dim1 = pd.Series(data=np.zeros(len(list_FSS)), index=list_FSS)
+    _flag_dim2 = pd.Series(data=np.zeros(len(list_FSS)), index=list_FSS)
+    _flag_dim3 = pd.Series(data=np.zeros(len(list_FSS)), index=list_FSS)
+
+    # 1 relevant gene per dimension of 3 dimensions
+    _top_3first = _top.iloc[:3,:]
 
     relv_atthetop = pd.Series(
         data=[False for i in range(len(list_FSS))], index=list_FSS
     )
 
     for fss in list_FSS:
-        if set(_top_60first[fss].values) == set(_truegenes):
+        nF_dim1 = len([f for f in _top_3first[fss] if f in _truegenes_dim1])
+        nF_dim2 = len([f for f in _top_3first[fss] if f in _truegenes_dim2])
+        nF_dim3 = len([f for f in _top_3first[fss] if f in _truegenes_dim3])
+
+        if (nF_dim1 == 1) and (nF_dim2 == 1) and (nF_dim3 == 1):
             relv_atthetop[fss] = True
 
     return relv_atthetop
