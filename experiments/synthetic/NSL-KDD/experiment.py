@@ -28,23 +28,79 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 from sklearn.metrics import balanced_accuracy_score
 
+# Taking the top nRetainedFeatures
+def get_indsTopnFeatures(_importances, _n):
+    return sorted(
+        range(len(_importances)),
+        key=lambda i: _importances[i], reverse=True
+    )[:_n]
+
 if len(sys.argv) < 2:
     print("Possible usage: python3.11 experiment.py <folder>")
     sys.exit(1)
 else:
     folder = Path(sys.argv[1])
 
-Xdf = pd.read_csv(folder.joinpath("Xtrain.csv"), index_col=0)
+Xdf = pd.read_csv(folder.joinpath("Xtrain20.csv"), index_col=0)
 X = Xdf.values
-y = pd.read_csv(folder.joinpath("ytrain.csv"), index_col=0)
+
+y = pd.read_csv(folder.joinpath("ytrain20.csv"), index_col=0)
 y = np.reshape(y, -1)
 
 Xdftest = pd.read_csv(folder.joinpath("Xtest.csv"), index_col=0)
 Xtest = Xdftest.values
+
 ytest = pd.read_csv(folder.joinpath("ytest.csv"), index_col=0)
 ytest = np.reshape(ytest, -1)
 
+X = np.delete(X, (19, 20), 1)
+Xtest = np.delete(Xtest, (19, 20), 1)
+
 # According to Canedo (2012), 40 % of 41 features = 16 features
+nRetainedFeatures = 16
+
+# === === === ===
+# Carrying out feature selection for each dataset
+elapsed_times = pd.Series(
+    data=np.zeros(7),
+    index=[
+        "RlfF",
+        "MSurf",
+        "RFGini",
+        "MI",
+        "FT",
+        "OA", "OApw",
+    ]
+)
+
+scores_df = pd.DataFrame(
+    data=np.zeros((X.shape[1], 8)),
+    columns=[
+        "feature",
+        "RlfF",
+        "MSurf",
+        "RFGini",
+        "MI",
+        "FT",
+        "OA", "OApw"
+    ]
+)
+scores_df["feature"] = np.arange(0, X.shape[1], 1)
+
+rank_df = pd.DataFrame(
+    data=np.zeros((16, 8)),
+    columns=[
+        "rank",
+        "RlfF",
+        "MSurf",
+        "RFGini",
+        "MI",
+        "FT",
+        "OA", "OApw",
+    ]
+)
+rank_df["rank"] = np.arange(0, 16, 1)
+
 
 # === === === === === === ===
 # FEATURE RANKING METHODS
@@ -55,8 +111,7 @@ RlfF = ReliefF(n_neighbors=7, n_jobs=-1) # From Cai, 2014
 RlfF.fit(X, y)
 tRlfF_stop = process_time()
 tRlfF = tRlfF_stop - tRlfF_start
-print(RlfF.feature_importances_)
-sys.exit()
+
 # MultiSURF
 tMSurf_start = process_time()
 MSurf = MultiSURF(n_jobs=-1)
@@ -108,29 +163,49 @@ tPDEpw_stop = process_time()
 tPDEpw = tPDEpw_stop - tPDEpw_start
 
 # === === === === === === ===
+# GET ELAPSED TIME
+elapsed_times.at["RlfF"] = tRlfF
+elapsed_times.at["MSurf"] = tMSurf
+elapsed_times.at["RFGini"] = tRF
+elapsed_times.at["MI"] = tMI
+elapsed_times.at["FT"] = tFT
+elapsed_times.at["OA"] = tPDE
+elapsed_times.at["OApw"] = tPDEpw
+
+# === === === === === === ===
 # GETTING TOP N FEATURES
-rank_df.loc[count_r:count_r+119, "RlfF"] = get_indsTopnFeatures(
+rank_df.loc[:, "RlfF"] = get_indsTopnFeatures(
     RlfF.feature_importances_, nRetainedFeatures
 )
-rank_df.loc[count_r:count_r+119, "MSurf"] = get_indsTopnFeatures(
+rank_df.loc[:, "MSurf"] = get_indsTopnFeatures(
     MSurf.feature_importances_, nRetainedFeatures
 )
-rank_df.loc[count_r:count_r+119, "MI"] = get_indsTopnFeatures(
+rank_df.loc[:, "MI"] = get_indsTopnFeatures(
     resMI, nRetainedFeatures
 )
-rank_df.loc[count_r:count_r+119, "RFGini"] = get_indsTopnFeatures(
+rank_df.loc[:, "RFGini"] = get_indsTopnFeatures(
     rfGini.feature_importances_, nRetainedFeatures
 )
-rank_df.loc[count_r:count_r+119, "FT"] = get_indsTopnFeatures(
+rank_df.loc[:, "FT"] = get_indsTopnFeatures(
     resFT_stat, nRetainedFeatures
 )
-rank_df.loc[count_r:count_r+119, "OA"] = pdeSegregate.top_features_[
+rank_df.loc[:, "OA"] = pdeSegregate.top_features_[
     :nRetainedFeatures
 ]
-rank_df.loc[count_r:count_r+119, "OApw"] = pdeSegregatePW.top_features_[
+rank_df.loc[:, "OApw"] = pdeSegregatePW.top_features_[
     :nRetainedFeatures
 ]
-rank_df.loc[count_r:count_r+119, "iteration"] = np.repeat([d_itr], 120)
-rank_df.loc[count_r:count_r+119, "nClass"] = np.repeat([nClass], 120)
+
+scores_df.loc[:, "RlfF"] = RlfF.feature_importances_
+scores_df.loc[:, "MSurf"] = MSurf.feature_importances_
+scores_df.loc[:, "MI"] = resMI
+scores_df.loc[:, "RFGini"] = rfGini.feature_importances_
+scores_df.loc[:, "FT"] = resFT_stat
+scores_df.loc[:, "OA"] = pdeSegregate.feature_importances_
+scores_df.loc[:, "OApw"] = pdeSegregatePW.feature_importances_
+
+elapsed_times.to_csv("elapsed_times.csv")
+rank_df.to_csv("rank.csv")
+scores_df.to_csv("scores_df.csv")
 
 sys.exit(0)
