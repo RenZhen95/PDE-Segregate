@@ -25,7 +25,7 @@ feature_scores_df = pd.read_csv(
     resultsFolder.joinpath("SDIfeaturescores.csv"), index_col=0
 )
 
-# Reading the top 10 features
+# Reading the top features
 ranks_df = pd.read_csv(
     resultsFolder.joinpath("SDIranks.csv"), index_col=0
 )
@@ -199,8 +199,6 @@ avrsuccess_nClass4 = calculate_success_per_nClass(4.0)
 average_successrate.loc[2.0] = avrsuccess_nClass2
 average_successrate.loc[3.0] = avrsuccess_nClass3
 average_successrate.loc[4.0] = avrsuccess_nClass4
-
-print(average_successrate)
 
 average_successrate.to_csv(
     Path(os.path.dirname(
