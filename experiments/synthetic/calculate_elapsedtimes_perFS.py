@@ -39,7 +39,6 @@ ANDORdiscreteaverage_df.rename(
         70.0: "Discrete ANDOR (n70)"
     }, inplace=True
 )
-print(ANDORdiscreteaverage_df)
 
 ANDORcontinuous_df = pd.read_csv(
     Electricalfolder.joinpath(f"ANDORcontinuous_elapsedtimes.csv"), index_col=0
@@ -92,24 +91,15 @@ average_df = pd.concat(
 )
 average_df.loc["Average"] = average_df.mean()
 
-average_df.rename(
-    columns={
-        "RlfF": "ReliefF", "MSurf": "MultiSURF",
-        "IRlf": "I-Relief", "LHRlf": "LH-Relief",
-        "RFGini": "RF (Gini)", "FT": "F-Ratio",
-        "OA": "PDE-S", "OApw": "PDE-S*"
-    }, inplace=True
-)
 average_df = average_df[
     [
-        "ReliefF", "MultiSURF", "I-Relief", "LH-Relief",
-        "RF (Gini)", "MI", "mRMR", "F-Ratio",
-        "PDE-S", "PDE-S*"
+        "RlfF", "MSurf", "IRlf", "LHRlf",
+        "RFGini", "MI", "mRMR", "FT",
+        "OA", "OApw"
     ]
 ]
-average_df = average_df.round(decimals=3)
+# average_df = average_df.round(decimals=4)
 print(average_df)
-
-# average_df.to_csv("average_elapsedtime.csv")
+# print(average_df.to_latex())
 
 sys.exit(0)
