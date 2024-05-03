@@ -39,7 +39,7 @@ ANDORdiscreteaverage_df.rename(
         70.0: "Discrete ANDOR (n70)"
     }, inplace=True
 )
-# print(ANDORdiscreteaverage_df)
+print(ANDORdiscreteaverage_df)
 
 ANDORcontinuous_df = pd.read_csv(
     Electricalfolder.joinpath(f"ANDORcontinuous_elapsedtimes.csv"), index_col=0
@@ -107,8 +107,8 @@ average_df = average_df[
         "PDE-S", "PDE-S*"
     ]
 ]
-print(average_df)
 average_df = average_df.round(decimals=3)
+print(average_df)
 
 # average_df.to_csv("average_elapsedtime.csv")
 
