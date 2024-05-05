@@ -6,7 +6,11 @@ from pathlib import Path
 from time import process_time
 from collections import defaultdict
 
-from anova import anova
+sys.path.append(
+    os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    )
+)
 from skrebate import ReliefF, MultiSURF
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import mutual_info_classif, f_classif
@@ -49,16 +53,27 @@ with open(processedDatasets, "rb") as handle:
 # Reading the feature rankings, output from the feature selection methods ran on MATLAB
 ReliefI_dict = defaultdict()
 ReliefLM_dict = defaultdict()
+mRMR_dict = defaultdict()
 for f in os.scandir(fsResults_matlab_folder):
     ds_name = f.name.split('_')[0]
     if "ReliefI" in f.name:
         tmpDF_RI = pd.read_csv(f, header=None).values
         ReliefI_dict[ds_name] = tmpDF_RI.reshape((tmpDF_RI.shape[0],))
+
     elif "ReliefLM" in f.name:
         # Taking only NN of 7 due to computational load
         # (suggested by author as good rule of thumb)
         tmpDF_RLM = pd.read_csv(f, header=None).values
         ReliefLM_dict[ds_name] = tmpDF_RLM.reshape((tmpDF_RLM.shape[0],))
+
+    # Reading ranks from mRMR (Ding, 2005)
+    # Minus 1 because MATLAB indexing starts from 1 and not 0
+    # From MATLAB documentation:
+    #   If idx(3) is 5 :: The third most important feature is the 10th column
+    elif "mRMR" in f.name:
+        tmpDF_mRMR = pd.read_csv(f, header=None).values
+        mRMR_dict[ds_name] = tmpDF_mRMR.reshape(tmpDF_mRMR.shape[1])
+        mRMR_dict[ds_name] = mRMR_dict[ds_name] - 1
 
 
 # === === === ===
@@ -152,12 +167,13 @@ for dataset in datasets_dict.keys():
     inds_topFeatures_RlfLM = get_indsTopnFeatures(
         ReliefLM_dict[dataset], nRetainedFeatures
     )
-    inds_topFeatures_MI = get_indsTopnFeatures(
-        resMI, nRetainedFeatures
-    )
     inds_topFeatures_RFGini = get_indsTopnFeatures(
         rfGini_featureImportance, nRetainedFeatures
     )
+    inds_topFeatures_MI = get_indsTopnFeatures(
+        resMI, nRetainedFeatures
+    )
+    inds_topFeatures_mRMR = mRMR_dict[dataset][:nRetainedFeatures]
     inds_topFeatures_FT = get_indsTopnFeatures(
         resFT_stat, nRetainedFeatures
     )
@@ -173,8 +189,9 @@ for dataset in datasets_dict.keys():
         "MSurf": inds_topFeatures_MSurf,
         "RlfI": inds_topFeatures_RlfI,
         "RlfLM": inds_topFeatures_RlfLM,
-        "MI": inds_topFeatures_MI,
         "RFGini": inds_topFeatures_RFGini,
+        "MI": inds_topFeatures_MI,
+        "mRMR": inds_topFeatures_mRMR,
         "FT": inds_topFeatures_FT,
         "OAtotal": inds_topFeatures_OAtotal,
         "OApw": inds_topFeatures_OApw
