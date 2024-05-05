@@ -108,6 +108,8 @@ avr_df["DT"] = avr_10foldcv.xs("DT", level=1)
 
 avr_df.rename(columns=CLF_dict, inplace=True)
 avr_df.rename(index=FSS_dict, inplace=True)
+avr_df.loc["Average",:] = avr_df.mean()
+print(avr_df)
 
 avr_df_str = avr_df.to_latex(float_format="%.3f")
 print(avr_df_str)
