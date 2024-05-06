@@ -1,16 +1,16 @@
 % Feature selection of I-RELIEF and LHR
 % The coded is implemented based on Y.J, Sun's IRELIEF.
 clear; clc
-% pyenv(Version="/usr/bin/python3.11");
+pyenv(Version="/usr/bin/python3.11");
 pickle = py.importlib.import_module('pickle');
-cd('D:\OneDrive\Paper2024\GAMM2024\datasets\real\')
+cd('/home/liaw/repo/PDE-SegregateDatasets/real/')
 
 suffix = "noANOVAcutclean";
 handle = py.open("processedDatasets_" + suffix + ".pkl", 'rb');
 processedDatasets_dict = pickle.load(handle);
 handle.close();
-% cd('../matlabFS/')
-cd('D:\repo\PDE-Segregate\matlabFS\')
+cd('/home/liaw/repo/PDE-Segregate/matlabFS/')
+% cd('D:\repo\PDE-Segregate\matlabFS\')
 
 processedDatasets = struct(processedDatasets_dict);
 datasetKeys = fieldnames(processedDatasets);

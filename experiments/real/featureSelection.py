@@ -70,7 +70,7 @@ for f in os.scandir(fsResults_matlab_folder):
     # Minus 1 because MATLAB indexing starts from 1 and not 0
     # From MATLAB documentation:
     #   If idx(3) is 5 :: The third most important feature is the 10th column
-    elif "mRMR" in f.name:
+    elif "_mRMR" in f.name:
         tmpDF_mRMR = pd.read_csv(f, header=None).values
         mRMR_dict[ds_name] = tmpDF_mRMR.reshape(tmpDF_mRMR.shape[1])
         mRMR_dict[ds_name] = mRMR_dict[ds_name] - 1
@@ -136,20 +136,20 @@ for dataset in datasets_dict.keys():
     # Overlapping Areas of PDEs (total)
     tTotal_start = process_time()
     pdeSegregate_total = PDE_Segregate(
-        X, y, integration_method="trapz", delta=1000, bw_method="scott",
+        integration_method="trapz", delta=1500, bw_method="scott",
         pairwise=False, n_jobs=-1
     )
-    pdeSegregate_total.fit()
+    pdeSegregate_total.fit(X, y)
     tTotal_stop = process_time()
     tTotal = tTotal_stop - tTotal_start
 
     # Overlapping Areas of PDEs (pairwise)
     tPW_start = process_time()
     pdeSegregate_pw = PDE_Segregate(
-        X, y, integration_method="trapz", delta=1000, bw_method="scott",
+        integration_method="trapz", delta=1500, bw_method="scott",
         pairwise=True, n_jobs=-1
     )
-    pdeSegregate_pw.fit()
+    pdeSegregate_pw.fit(X, y)
     tPW_stop = process_time()
     tPW = tPW_stop - tPW_start
 
