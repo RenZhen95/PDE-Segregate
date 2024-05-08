@@ -9,7 +9,7 @@ from joblib import Parallel, delayed
 class PDE_Segregate():
     def __init__(
             self, integration_method="trapz", delta=1500,
-            bw_method="scott", pairwise=False, n_jobs=1
+            bw_method="scott", n=2, n_jobs=1
     ):
         """
         Parameters
@@ -27,9 +27,9 @@ class PDE_Segregate():
            'scott' and 'silverman', a scalar constant or a callable. For
            more details, see scipy.stats.gaussian_kde documentation.
 
-        pairwise : bool
-         - Option to either compute the intersection area of all the different
-           classes OR the mean of pairwise intersection areas.
+        n : intpairwise : bool
+         - Compute the mean intersection area between N choose 2 combinations
+           of intersection areas.
 
         n_jobs : int
          - Number of processors to use. -1 to use all available processors.
@@ -37,11 +37,12 @@ class PDE_Segregate():
         self.integration_method = integration_method
         self.delta = delta
         self.bw_method = bw_method
-        self.pairwise = pairwise
+        self.n = n
         self.n_jobs = n_jobs
 
         # Initializing the x-axis grid
-        self.XGrid = np.linspace(-1.0, 2.0, self.delta)
+        self.XGrid = np.linspace(0.0, 1.0, self.delta)
+        # self.XGrid = np.linspace(-1.0, 2.0, self.delta)
 
     def fit(self, X, y):
         """
@@ -85,7 +86,7 @@ class PDE_Segregate():
         self.yLabels = list(self.y_segregatedGroup.keys())
         self.yLabels.sort()
 
-        # Construct kerndel density estimator per class for every feature
+        # Construct kernel density estimator per class for every feature
         delayed_calls = (
             delayed(
                 self.construct_kernel
@@ -94,38 +95,38 @@ class PDE_Segregate():
         self.feature_kernels = Parallel(n_jobs=self.n_jobs)(delayed_calls)
         print("Kernels constructed ... ")
 
-        # Computing the intersection area among all classes
-        if not self.pairwise:
+        # # Computing the intersection area among all classes
+        # if not self.pairwise:
+        #     delayed_calls_intersectionArea = (
+        #         delayed(
+        #             self.compute_intersectionArea
+        #         )(feat_idx, self.pairwise) for feat_idx in range(self.X.shape[1])
+        #     )
+        #     intersectionAreas = Parallel(
+        #         n_jobs=self.n_jobs, backend="threading", verbose=1
+        #     )(delayed_calls_intersectionArea)
+
+        #     self.intersectionAreas = np.array(intersectionAreas)
+
+        # Compute intersection areas
+
+        # Number of different combinations: nclass choose n
+        _combinations = combinations(self.yLabels, self.n)
+        cStack = []
+        for c in _combinations:
             delayed_calls_intersectionArea = (
                 delayed(
                     self.compute_intersectionArea
-                )(feat_idx, self.pairwise) for feat_idx in range(self.X.shape[1])
+                )(feat_idx, c) for feat_idx in range(self.X.shape[1])
             )
-            intersectionAreas = Parallel(
+            c_intersection = Parallel(
                 n_jobs=self.n_jobs, backend="threading", verbose=1
             )(delayed_calls_intersectionArea)
 
-            self.intersectionAreas = np.array(intersectionAreas)
+            cStack.append(c_intersection)
 
-        # Computing pairwise intersection areas
-        else:
-            # Number of different combinations: nclass choose 2
-            pairwise_combinations = combinations(self.yLabels, 2)
-            cStack = []
-            for c in pairwise_combinations:
-                delayed_calls_pairwiseIntersectionArea = (
-                    delayed(
-                        self.compute_intersectionArea
-                    )(feat_idx, c) for feat_idx in range(self.X.shape[1])
-                )
-                c_intersection = Parallel(
-                    n_jobs=self.n_jobs, backend="threading", verbose=1
-                )(delayed_calls_pairwiseIntersectionArea)
-
-                cStack.append(c_intersection)
-
-            cStack = np.array(cStack)
-            self.intersectionAreas = np.mean(cStack, axis=0)
+        cStack = np.array(cStack)
+        self.intersectionAreas = np.mean(cStack, axis=0)
 
         # Get feature importances as expressed in terms of reciprocal of
         # computed intersection areas
@@ -143,9 +144,8 @@ class PDE_Segregate():
         feat_idx : int
          - Index of the desired feature in the given dataset, X.
 
-        pairwise : False or tuple
-         - If false, then compute intersection area of all classes, else a
-        pair of indices indicating which pair of classes to compare.
+        pairwise : tuple
+         - Pair of indices indicating which pair of classes to compare.
 
         Returns
         -------
@@ -154,15 +154,15 @@ class PDE_Segregate():
         """
         yStack = []
 
-        if not pairwise:
-            for Y in self.feature_kernels[feat_idx].values():
-                yStack.append(Y)
-        else:
-            Y0 = self.feature_kernels[feat_idx][pairwise[0]]
-            yStack.append(Y0)
+        # if not pairwise:
+        #     for Y in self.feature_kernels[feat_idx].values():
+        #         yStack.append(Y)
 
-            Y1 = self.feature_kernels[feat_idx][pairwise[1]]
-            yStack.append(Y1)
+        Y0 = self.feature_kernels[feat_idx][pairwise[0]]
+        yStack.append(Y0)
+
+        Y1 = self.feature_kernels[feat_idx][pairwise[1]]
+        yStack.append(Y1)
 
         yIntersection = np.amin(yStack, axis=0)
 
@@ -280,7 +280,7 @@ class PDE_Segregate():
 
     def plot_overlapAreas(
             self, feat_idx, feat_names=None, _ylim=None, _title=None,
-            show_samples=False, savefig=None, format="svg",
+            show_samples=False, savefig=None, _format="svg",
             legend=False, return_normVector=False, _ax=None
     ):
         """
@@ -292,15 +292,21 @@ class PDE_Segregate():
          - If true, legend would include all the class PDEs and computed
            intersection areas. If 'intersection', only includes
            intersection area.
+
+        savefig : str, None
+         - If str, then figure will be saved as file name given.
         """
         normalizedX_dict = self.normalize_feature_vector(feat_idx)
 
-        OA = self.compute_intersectionArea(feat_idx, False)
+        OA = self.intersectionAreas[feat_idx]
 
         yStack = []
 
         if _ax is None:
             fig, _ax = plt.subplots(1,1)
+            _ax_passed = False
+        else:
+            _ax_passed = True
 
         linecolors = []
         for y, p_y in self.feature_kernels[feat_idx].items():
@@ -308,12 +314,12 @@ class PDE_Segregate():
 
             # Plotting the probabilty density estimate per class
             if legend == "intersection":
-                p = _ax.plot(self.XGrid, p_y)
+                p = _ax.plot(self.XGrid, p_y, alpha=0.7)
             else:
                 if legend:
-                    p = _ax.plot(self.XGrid, p_y, label=y)
+                    p = _ax.plot(self.XGrid, p_y, alpha=0.7, label=y)
                 else:
-                    p = _ax.plot(self.XGrid, p_y)
+                    p = _ax.plot(self.XGrid, p_y, alpha=0.7)
 
             # Get line colors
             linecolors.append(p[0].get_color())
@@ -349,8 +355,15 @@ class PDE_Segregate():
         else:
             _ax.set_xlabel(f"Feature {feat_idx}", fontsize='large')
 
-        _ax.set_xlim((-0.005, 1.005))
-        _ax.set_xticks(np.arange(0.0, 1.2, 0.2))
+        xrange = self.XGrid.max() - self.XGrid.min()
+        _ax.set_xlim(
+            (self.XGrid.min()-(xrange*0.05), self.XGrid.max()+(xrange*0.05))
+        )
+        _ax.set_xticks(
+            np.arange(
+                self.XGrid.min()-(xrange*0.05), self.XGrid.max()+(xrange*0.05), 0.2
+            )
+        )
         if not _ylim is None:
             _ax.set_ylim(_ylim)
 
@@ -358,13 +371,12 @@ class PDE_Segregate():
             _ax.legend(bbox_to_anchor=(0.4,1), loc='upper left', title=_title, fontsize='x-large')
 
         # If user DOES NOT pass a matplotlib Axes object from the outside
-        if _ax is None:
+        if not _ax_passed:
             _ax.grid(visible=True, which="major", axis="both")
 
             if not savefig is None:
-                fig.savefig(f"{savefig}.{format}", format=format)
-            else:
-                plt.show()
+                print(f"Plotting {savefig}.{_format} ... ") 
+                plt.savefig(f"{savefig}.{_format}", format=_format)
 
         if return_normVector:
             return normalizedX_dict
