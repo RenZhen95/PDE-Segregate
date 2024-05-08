@@ -13,18 +13,9 @@ else:
     resultsFolder = Path(sys.argv[1])
 
 # Reading results for the following datasets
-# datasets_binary = [
-#     ("cns", "CNS"),
-#     ("lung", "Lung"),
-#     ("leuk", "Leukemia"),
-#     ("colon", "Colon"),
-#     ("pros3", "Prostrate"),
-#     ("gcm", "GCM")
-# ]
-datasets_binary = [
-    ("dlbcl", "DLBCL"),
-    ("pros1", "Prostrate1"),
-    ("pros2", "Prostrate2")
+datasets_multi = [
+    ("geneExpressionCancerRNA", "Cancer RNA-Gene"),
+    ("PersonGaitDataSet", "Person Gait Classification")
 ]
 # FSS name-mapper
 FSS_dict = {
@@ -40,7 +31,7 @@ FSS_dict = {
     "OApw": "PDE-S*"
 }
 
-# 6 benchmark datasets
+# 2 multiclass datasets
 datasetResults_dict = defaultdict()
 
 for f in os.scandir(resultsFolder):
@@ -62,17 +53,18 @@ for f in os.scandir(resultsFolder):
         else:
             datasetResults_dict[ds_name].drop([i], inplace=True)
 
-datasetResults_binary = defaultdict()
-
+# fsorder = [
+#     "RlfF", "MSurf", "IRlf", "LHRlf",
+#     "RFGini", "MI", "mRMR", "FT", "PDE-S", "PDE-S*"
+# ]
 fsorder = [
     "RlfF", "MSurf", "IRlf", "LHRlf",
-    "RFGini", "MI", "mRMR", "FT", "PDE-S"
+    "RFGini", "MI", "FT", "PDE-S", "PDE-S*"
 ]
 
-for k in datasets_binary:
+for k in datasets_multi:
     print(k)
     df = datasetResults_dict[k[0]]
-    df = df.drop([i for i in list(df.index) if "OApw" in i])
 
     df25  = df[df["nThreshold"]=="25"][
         ["kNN", "SVM", "Gaussian-NB", "LDA", "DT", "FSS"]
