@@ -9,7 +9,7 @@ from joblib import Parallel, delayed
 class PDE_Segregate():
     def __init__(
             self, integration_method="trapz", delta=1500,
-            bw_method="scott", n=2, n_jobs=1
+            bw_method="scott", n=2, n_jobs=1, mode="release"
     ):
         """
         Parameters
@@ -33,16 +33,21 @@ class PDE_Segregate():
 
         n_jobs : int
          - Number of processors to use. -1 to use all available processors.
+
+        mode : str ("release", "development")
+         - Option implemented during development to return constructed kernels
+           PDEs.
         """
         self.integration_method = integration_method
         self.delta = delta
         self.bw_method = bw_method
         self.n = n
         self.n_jobs = n_jobs
+        self.mode = mode
 
         # Initializing the x-axis grid
-        self.XGrid = np.linspace(0.0, 1.0, self.delta)
-        # self.XGrid = np.linspace(-1.0, 2.0, self.delta)
+        # self.XGrid = np.linspace(0.0, 1.0, self.delta)
+        self.XGrid = np.linspace(-1.0, 2.0, self.delta)
 
     def fit(self, X, y):
         """
@@ -92,21 +97,14 @@ class PDE_Segregate():
                 self.construct_kernel
             )(feat_idx) for feat_idx in range(self.X.shape[1])
         )
-        self.feature_kernels = Parallel(n_jobs=self.n_jobs)(delayed_calls)
+        res = Parallel(n_jobs=self.n_jobs)(delayed_calls)
+        if self.mode == "development":
+            self.feature_kernels = [item[0] for item in res]
+            self.pdes = [item[1] for item in res]
+        elif self.mode == "release":
+            self.pdes = res
+
         print("Kernels constructed ... ")
-
-        # # Computing the intersection area among all classes
-        # if not self.pairwise:
-        #     delayed_calls_intersectionArea = (
-        #         delayed(
-        #             self.compute_intersectionArea
-        #         )(feat_idx, self.pairwise) for feat_idx in range(self.X.shape[1])
-        #     )
-        #     intersectionAreas = Parallel(
-        #         n_jobs=self.n_jobs, backend="threading", verbose=1
-        #     )(delayed_calls_intersectionArea)
-
-        #     self.intersectionAreas = np.array(intersectionAreas)
 
         # Compute intersection areas
 
@@ -158,10 +156,10 @@ class PDE_Segregate():
         #     for Y in self.feature_kernels[feat_idx].values():
         #         yStack.append(Y)
 
-        Y0 = self.feature_kernels[feat_idx][pairwise[0]]
+        Y0 = self.pdes[feat_idx][pairwise[0]]
         yStack.append(Y0)
 
-        Y1 = self.feature_kernels[feat_idx][pairwise[1]]
+        Y1 = self.pdes[feat_idx][pairwise[1]]
         yStack.append(Y1)
 
         yIntersection = np.amin(yStack, axis=0)
@@ -195,14 +193,19 @@ class PDE_Segregate():
 
         """
         kernels = defaultdict()
+        pdes = defaultdict()
         normalizedX_dict = self.normalize_feature_vector(feat_idx)
 
         for y in self.yLabels:
             kernel = gaussian_kde(normalizedX_dict[y], self.bw_method)
             pde = np.reshape(kernel(self.XGrid).T, self.delta)
-            kernels[y] = pde
+            kernels[y] = kernel
+            pdes[y] = pde
 
-        return kernels
+        if self.mode == "development":
+            return kernels, pdes
+        elif self.mode == "release":
+            return pdes
 
     def normalize_feature_vector(self, feat_idx):
         """
@@ -309,7 +312,7 @@ class PDE_Segregate():
             _ax_passed = True
 
         linecolors = []
-        for y, p_y in self.feature_kernels[feat_idx].items():
+        for y, p_y in self.pdes[feat_idx].items():
             yStack.append(p_y)
 
             # Plotting the probabilty density estimate per class
@@ -327,7 +330,7 @@ class PDE_Segregate():
         # Plotting the data samples
         if show_samples:
             yMax = _ax.get_ylim()[1]
-            for i, k in enumerate(self.feature_kernels[feat_idx].keys()):
+            for i, k in enumerate(self.pdes[feat_idx].keys()):
                 _ax.vlines(
                     normalizedX_dict[k], 0.0, 0.03*yMax,
                     color=linecolors[i], alpha=0.7
