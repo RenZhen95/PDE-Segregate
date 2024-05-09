@@ -8,8 +8,10 @@ from joblib import Parallel, delayed
 
 class PDE_Segregate():
     def __init__(
-            self, integration_method="trapz", delta=1500,
-            bw_method="scott", n=2, n_jobs=1, mode="release"
+            self, integration_method="trapz", delta=500,
+            bw_method="scott", n=2, n_jobs=1,
+            lower_end=-1.0, upper_end=2.0,
+            mode="release"
     ):
         """
         Parameters
@@ -34,6 +36,12 @@ class PDE_Segregate():
         n_jobs : int
          - Number of processors to use. -1 to use all available processors.
 
+        lower_end : float
+         - Lower end of the grid to evaluate the KDEs.
+
+        upper_end : float
+         - Upper end of the grid to evaluate the KDEs.
+
         mode : str ("release", "development")
          - Option implemented during development to return constructed kernels
            PDEs.
@@ -46,8 +54,15 @@ class PDE_Segregate():
         self.mode = mode
 
         # Initializing the x-axis grid
-        # self.XGrid = np.linspace(0.0, 1.0, self.delta)
-        self.XGrid = np.linspace(-1.0, 2.0, self.delta)
+        if lower_end > 0.0:
+            raise ValueError("Parameter lower_end must be less than 0.0!")
+        else:
+            self.leftEnd = lower_end
+
+        if upper_end < 1.0:
+            raise ValueError("Parameter upper_end must be greater than 1.0!")
+        else:
+            self.rightEnd = upper_end
 
     def fit(self, X, y):
         """
@@ -61,11 +76,37 @@ class PDE_Segregate():
         y : np.array
          - Class vector
         """
+        # Grouping the samples according to unique y label
         self.X = X
         self.y = y
-
-        # Grouping the samples according to unique y label
         self.y_segregatedGroup = self.segregateX_y()
+    
+        # Initializing a list of available classes
+        self.yLabels = list(self.y_segregatedGroup.keys())
+        self.yLabels.sort()
+
+        # Check to make sure user does not enter an invalid parameter 'n'
+        if self.n > len(self.yLabels):
+            raise ValueError(
+                f"Parameter n must be between 2 and number of class ({len(self.yLabels)})!"
+            )
+
+        if self.n == 1:
+            raise ValueError(
+                f"Parameter n must be between 2 and number of class ({len(self.yLabels)})!"
+            )
+
+        # Initializing the grid
+        self.XGrid = np.linspace(0.0, 1.0, int(self.delta))
+        grid_width = self.XGrid[1] - self.XGrid[0]
+
+        if self.leftEnd != 0.0:
+            leftGrid = np.arange(self.leftEnd, 0.0, grid_width)
+            self.XGrid = np.concatenate((leftGrid, self.XGrid))
+
+        if self.rightEnd != 1.0:
+            rightGrid = np.arange(1.0, self.rightEnd, grid_width)
+            self.XGrid = np.concatenate((self.XGrid, rightGrid))
 
         # Do not allow user to use PDE-Segregate, when class has only one sample
         yToRemove = []
@@ -87,28 +128,24 @@ class PDE_Segregate():
                 f"y={self.y_segregatedGroup.keys()}"
             )
 
-        # Initializing a list of available classes
-        self.yLabels = list(self.y_segregatedGroup.keys())
-        self.yLabels.sort()
-
         # Construct kernel density estimator per class for every feature
+        print("Constructing the KDEs per class for every feature ... ")
         delayed_calls = (
             delayed(
                 self.construct_kernel
             )(feat_idx) for feat_idx in range(self.X.shape[1])
         )
-        res = Parallel(n_jobs=self.n_jobs)(delayed_calls)
+        res = Parallel(n_jobs=self.n_jobs, verbose=1)(delayed_calls)
         if self.mode == "development":
             self.feature_kernels = [item[0] for item in res]
             self.pdes = [item[1] for item in res]
+            self.normalizedX_dict = [item[2] for item in res]
         elif self.mode == "release":
             self.pdes = res
 
         print("Kernels constructed ... ")
 
         # Compute intersection areas
-
-        # Number of different combinations: nclass choose n
         _combinations = combinations(self.yLabels, self.n)
         cStack = []
         for c in _combinations:
@@ -198,12 +235,12 @@ class PDE_Segregate():
 
         for y in self.yLabels:
             kernel = gaussian_kde(normalizedX_dict[y], self.bw_method)
-            pde = np.reshape(kernel(self.XGrid).T, self.delta)
+            pde = np.reshape(kernel(self.XGrid).T, len(self.XGrid))
             kernels[y] = kernel
             pdes[y] = pde
 
         if self.mode == "development":
-            return kernels, pdes
+            return kernels, pdes, normalizedX_dict
         elif self.mode == "release":
             return pdes
 

@@ -39,8 +39,8 @@ with open(topranks_old, "rb") as handle:
 geneRNA_ranks = topranks["geneExpressionCancerRNA"]
 geneRNA_ranksOld = topranksOld["geneExpressionCancerRNA"]
 
-# print(geneRNA_ranks["MSurf"])
-# print(geneRNA_ranksOld["MSurf"])
+# print(geneRNA_ranks["OAtotal"])
+# print(geneRNA_ranksOld["OAtotal"])
 
 X = datasets_dict["geneExpressionCancerRNA"]['X']
 y = datasets_dict["geneExpressionCancerRNA"]['y']
@@ -48,8 +48,8 @@ y = datasets_dict["geneExpressionCancerRNA"]['y']
 # # === === === === === === === === === === === === === === === === === === === ===
 tstart = process_time()
 pdeSegregate= PDE_Segregate(
-    integration_method="trapz", delta=1500, bw_method="scott", n=2, n_jobs=-1,
-    mode="development"
+    integration_method="trapz", delta=500, bw_method="scott", n=2, n_jobs=-1,
+    lower_end=-0.5, upper_end=1.5, mode="development"
 )
 pdeSegregate.fit(X, y)
 tstop = process_time()
@@ -59,28 +59,38 @@ print(t)
 inds_topFeatures = pdeSegregate.get_topnFeatures(3)
 print(inds_topFeatures)
 
-pdeSegregate.plot_overlapAreas(16920, legend=True, savefig=f"idx16920new")
-pdeSegregate.plot_overlapAreas(12537, legend=True, savefig=f"idx12537new")
-pdeSegregate.plot_overlapAreas(14792, legend=True, savefig=f"idx14792new")
+pdeSegregate.plot_overlapAreas(16920, legend=True, savefig=f"idx16920latest05")
+pdeSegregate.plot_overlapAreas(12537, legend=True, savefig=f"idx12537latest05")
+pdeSegregate.plot_overlapAreas(14792, legend=True, savefig=f"idx14792latest05")
 
-pdeSegregate.plot_overlapAreas(1842, legend=True, savefig=f"idx1842new")
-pdeSegregate.plot_overlapAreas(3525, legend=True, savefig=f"idx3525new")
-pdeSegregate.plot_overlapAreas(4368, legend=True, savefig=f"idx4368new")
+pdeSegregate.plot_overlapAreas(1842, legend=True, savefig=f"idx1842latest05")
+pdeSegregate.plot_overlapAreas(3525, legend=True, savefig=f"idx3525latest05")
+pdeSegregate.plot_overlapAreas(4368, legend=True, savefig=f"idx4368latest05")
 
-pdeSegregate.plot_overlapAreas(17547, legend=True, savefig=f"msurf_idx17547new")
-pdeSegregate.plot_overlapAreas(18492, legend=True, savefig=f"msurf_idx18492new")
-pdeSegregate.plot_overlapAreas(7949, legend=True, savefig=f"msurf_idx7949new")
+pdeSegregate.plot_overlapAreas(17547, legend=True, savefig=f"msurf_idx17547latest05")
+pdeSegregate.plot_overlapAreas(18492, legend=True, savefig=f"msurf_idx18492latest05")
+pdeSegregate.plot_overlapAreas(7949, legend=True, savefig=f"msurf_idx7949latest05")
 
-with open("pdes_new_Ai.pkl", "wb") as handle:
+with open("pdes_latest05_Ai.pkl", "wb") as handle:
     pickle.dump(pdeSegregate.intersectionAreas, handle)
 
-with open("pdes_new_kernels.pkl", "wb") as handle:
+with open("pdes_latest05_kernels.pkl", "wb") as handle:
     pickle.dump(pdeSegregate.feature_kernels, handle)
+
+with open("pdes_latest05_normalizedXdict.pkl", "wb") as handle:
+    pickle.dump(pdeSegregate.normalizedX_dict, handle)
+
+with open("pdes_latest05_top100features", "wb") as handle:
+    pickle.dump(pdeSegregate.get_topnFeatures(100), handle)
+
 # # === === === === === === === === === === === === === === === === === === === ===
 
 # Old 0.0 - 1.0  : [16920, 12537, 14792]
 # New -1.0 - 2.0 : [1842, 3525, 4368]
+# Latest         : [18127, 7950, 6583]
+# Latest 0.5     : [18127, 16920, 12580]
 # MSurf          : [17547, 18492, 7949]
+# MI             : [7949, 18127, 16855]
 
 # # === === === === === === === === === === === === === === === === === === === ===
 # with open("pdes_new_Ai.pkl", "rb") as handle:
