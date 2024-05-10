@@ -82,7 +82,7 @@ class PDE_Segregate():
         self.X = X_sub / X_sub.max(axis=0)
 
         # Grouping the samples according to unique y label
-        self.y_segregatedGroup, self.y_segregatedGroup_sd, self.y_segregatedGroup_mean = self.segregateX_y()
+        self.y_segregatedGroup = self.segregateX_y()
 
         # Initializing a list of available classes
         self.yLabels = list(self.y_segregatedGroup.keys())
@@ -99,13 +99,13 @@ class PDE_Segregate():
                 f"Parameter n must be between 2 and number of class ({len(self.yLabels)})!"
             )
 
-        # Initializing the default grid
-        mid_grid= np.linspace(0.0, 1.0, int(self.delta))
-        self.grid_width = mid_grid[1] - mid_grid[0]
+        # Initializing the grid
+        self.XGrid = np.linspace(0.0, 1.0, int(self.delta))
+        self.grid_width = self.XGrid[1] - self.XGrid[0]
 
         if self.leftEnd != 0.0:
             leftGrid = np.arange(self.leftEnd, 0.0, self.grid_width)
-            self.XGrid = np.concatenate((leftGrid, mid_grid))
+            self.XGrid = np.concatenate((leftGrid, self.XGrid))
 
         if self.rightEnd != 1.0:
             rightGrid = np.arange(1.0, self.rightEnd, self.grid_width)
@@ -132,9 +132,7 @@ class PDE_Segregate():
             )
 
         # Construct kernel density estimator per class for every feature
-        print(
-            "Constructing and evaluating the KDEs per class for every feature ... "
-        )
+        print("Constructing the KDEs per class for every feature ... ")
 
         delayed_calls = (
             delayed(
@@ -145,10 +143,8 @@ class PDE_Segregate():
         if self.mode == "development":
             self.feature_kernels = [item[0] for item in res]
             self.pdes = [item[1] for item in res]
-            self.grids = [item[2] for item in res]
         elif self.mode == "release":
-            self.pdes = [item[0] for item in res]
-            self.grids = [item[1] for item in res]
+            self.pdes = res
 
         print(" - Kernels constructed!")
 
@@ -205,7 +201,7 @@ class PDE_Segregate():
         if self.integration_method == "sum":
             OA = (yIntersection.sum())/delta
         elif self.integration_method == "trapz":
-            OA = np.trapz(yIntersection, self.grids[feat_idx])
+            OA = np.trapz(yIntersection, self.XGrid)
         else:
             raise ValueError(
                 "Possible options for <integration_method>: " +
@@ -226,57 +222,28 @@ class PDE_Segregate():
 
         Returns
         -------
-        pdes : dict
-         - dict[class]: Evaluated KDEs along grid.
-
-        _grid : np.array
-         - Grid to evaluated KDE needed for trapezoidal integration.
-
-        If self.mode=="development":
-        kdes : dict
-         - dict[class]: Constructed KDE.
+        kernels : dict
+         - dict[class]: kernel.
 
         """
         kernels = defaultdict(); pdes = defaultdict()
 
-        special_means = np.array(())
-
-        # To account for cases where all samples in the population are
-        # centered at the local mean
         for y in self.yLabels:
-            if self.y_segregatedGroup_sd[y][feat_idx] <= 2*self.grid_width:
-                # Fit mean into the grid
-                special_means = np.append(
-                    special_means, self.y_segregatedGroup_mean[y][feat_idx]
-                )
-
-        special_means = np.sort(special_means)
-
-        if len(special_means) > 0:
-            lefthalf  = np.where(self.XGrid < special_means[0])[0]
-            righthalf = np.where(self.XGrid > special_means[-1])[0]
-
-            _grid = self.XGrid[lefthalf]
-            for _mean in special_means:
-                _grid = np.append(_grid, _mean)
-            _grid = np.concatenate((_grid, self.XGrid[righthalf]))
-
-        else:
-            _grid = self.XGrid
-
-        for y in self.yLabels:
+            # TODO:
+            # 1. normalizedX_dict[y].std() > 2*dx -> Ok; else
+            # 2. Get index of normalizedX_dict[y].mean() and append to XGrid
             kernel = gaussian_kde(
                 self.y_segregatedGroup[y][:,feat_idx], self.bw_method
             )
             kernels[y] = kernel
 
-            pde = np.reshape(kernel(_grid).T, len(_grid))
+            pde = np.reshape(kernel(self.XGrid).T, len(self.XGrid))
             pdes[y] = pde
 
         if self.mode == "development":
-            return kernels, pdes, _grid
+            return kernels, pdes
         elif self.mode == "release":
-            return pdes, _grid
+            return pdes
 
     def segregateX_y(self):
         """
@@ -285,8 +252,6 @@ class PDE_Segregate():
         unique_y = list(set(self.y))
 
         _subX = defaultdict()
-        _subX_sd = defaultdict()
-        _subX_mean = defaultdict()
         for uy in unique_y:
             _subX[uy] = self.X[np.where(self.y==uy)[0], :]
 
@@ -294,13 +259,7 @@ class PDE_Segregate():
             # a Cholesky Decomposition on the variance matrix
             _subX[uy][-1] += 1e-15
 
-            # Compute standard deviation per population per feature
-            _subX_sd[uy] = _subX[uy].std(axis=0)
-
-            # Compute mean per population per feature
-            _subX_mean[uy] = _subX[uy].mean(axis=0)
-
-        return _subX, _subX_sd, _subX_mean
+        return _subX
 
     def get_topnFeatures(self, n):
         """

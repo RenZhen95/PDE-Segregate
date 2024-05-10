@@ -133,25 +133,14 @@ for dataset in datasets_dict.keys():
     tRF = tRF_stop - tRF_start
 
     # Proposed algorithm
-    # Overlapping Areas of PDEs (total)
-    tTotal_start = process_time()
-    pdeSegregate_total = PDE_Segregate(
-        integration_method="trapz", delta=1500, bw_method="scott",
-        pairwise=False, n_jobs=-1
+    tPDE_start = process_time()
+    pdeSegregate = PDE_Segregate(
+        integration_method="trapz", delta=500, bw_method="scott",
+        n=2, n_jobs=-1, mode="release"
     )
-    pdeSegregate_total.fit(X, y)
-    tTotal_stop = process_time()
-    tTotal = tTotal_stop - tTotal_start
-
-    # Overlapping Areas of PDEs (pairwise)
-    tPW_start = process_time()
-    pdeSegregate_pw = PDE_Segregate(
-        integration_method="trapz", delta=1500, bw_method="scott",
-        pairwise=True, n_jobs=-1
-    )
-    pdeSegregate_pw.fit(X, y)
-    tPW_stop = process_time()
-    tPW = tPW_stop - tPW_start
+    pdeSegregate.fit(X, y)
+    tPDE_stop = process_time()
+    tPDE = tPDE_stop - tPDE_start
 
     # === === === === === === ===
     # GETTING TOP N FEATURES
@@ -177,10 +166,7 @@ for dataset in datasets_dict.keys():
     inds_topFeatures_FT = get_indsTopnFeatures(
         resFT_stat, nRetainedFeatures
     )
-    inds_topFeatures_OAtotal = pdeSegregate_total.get_topnFeatures(
-        nRetainedFeatures
-    )
-    inds_topFeatures_OApw = pdeSegregate_pw.get_topnFeatures(
+    inds_topFeatures_PDES = pdeSegregate.get_topnFeatures(
         nRetainedFeatures
     )
 
@@ -193,8 +179,7 @@ for dataset in datasets_dict.keys():
         "MI": inds_topFeatures_MI,
         "mRMR": inds_topFeatures_mRMR,
         "FT": inds_topFeatures_FT,
-        "OAtotal": inds_topFeatures_OAtotal,
-        "OApw": inds_topFeatures_OApw
+        "PDE-S": inds_topFeatures_PDES
     }
     dataset_inds_topFeatures[dataset] = inds_topFeatures
 
@@ -206,8 +191,7 @@ for dataset in datasets_dict.keys():
         "MI": tMI,
         "RFGini": tRF,
         "FT": tFT,
-        "OAtotal": tTotal,
-        "OApw": tPW
+        "PDE-S": tPDE
     }
     elapsed_times_perDS[dataset] = elapsed_times
 
