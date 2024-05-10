@@ -234,6 +234,9 @@ class PDE_Segregate():
         normalizedX_dict = self.normalize_feature_vector(feat_idx)
 
         for y in self.yLabels:
+            # TODO:
+            # 1. normalizedX_dict[y].std() > 2*dx -> Ok; else
+            # 2. Get index of normalizedX_dict[y].mean() and append to XGrid
             kernel = gaussian_kde(normalizedX_dict[y], self.bw_method)
             pde = np.reshape(kernel(self.XGrid).T, len(self.XGrid))
             kernels[y] = kernel
