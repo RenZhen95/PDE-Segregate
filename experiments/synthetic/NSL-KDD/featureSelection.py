@@ -36,7 +36,7 @@ def get_indsTopnFeatures(_importances, _n):
     )[:_n]
 
 if len(sys.argv) < 2:
-    print("Possible usage: python3.11 experiment.py <folder>")
+    print("Possible usage: python3.11 featureSelection.py <folder>")
     sys.exit(1)
 else:
     folder = Path(sys.argv[1])
@@ -62,19 +62,19 @@ nRetainedFeatures = 16
 # === === === ===
 # Carrying out feature selection for each dataset
 elapsed_times = pd.Series(
-    data=np.zeros(7),
+    data=np.zeros(6),
     index=[
         "RlfF",
         "MSurf",
         "RFGini",
         "MI",
         "FT",
-        "OA", "OApw",
+        "PDE-S"
     ]
 )
 
 scores_df = pd.DataFrame(
-    data=np.zeros((X.shape[1], 8)),
+    data=np.zeros((X.shape[1], 7)),
     columns=[
         "feature",
         "RlfF",
@@ -82,13 +82,13 @@ scores_df = pd.DataFrame(
         "RFGini",
         "MI",
         "FT",
-        "OA", "OApw"
+        "PDE-S"
     ]
 )
 scores_df["feature"] = np.arange(0, X.shape[1], 1)
 
 rank_df = pd.DataFrame(
-    data=np.zeros((16, 8)),
+    data=np.zeros((16, 7)),
     columns=[
         "rank",
         "RlfF",
@@ -96,7 +96,7 @@ rank_df = pd.DataFrame(
         "RFGini",
         "MI",
         "FT",
-        "OA", "OApw",
+        "PDE-S"
     ]
 )
 rank_df["rank"] = np.arange(0, 16, 1)
@@ -142,25 +142,14 @@ tRF_stop = process_time()
 tRF = tRF_stop - tRF_start
 
 # Proposed algorithm
-# Overlapping Areas of PDEs (total)
 tPDE_start = process_time()
 pdeSegregate = PDE_Segregate(
-    integration_method="trapz", delta=1500, bw_method="scott",
-    pairwise=False, n_jobs=-1
+    integration_method="trapz", delta=500, bw_method="scott",
+    n=2, n_jobs=-1, mode="release"
 )
 pdeSegregate.fit(X, y)
 tPDE_stop = process_time()
 tPDE = tPDE_stop - tPDE_start
-
-# Overlapping Areas of PDEs (pairwise)
-tPDEpw_start = process_time()
-pdeSegregatePW = PDE_Segregate(
-    integration_method="trapz", delta=1500, bw_method="scott",
-    pairwise=True, n_jobs=-1
-)
-pdeSegregatePW.fit(X, y)
-tPDEpw_stop = process_time()
-tPDEpw = tPDEpw_stop - tPDEpw_start
 
 # === === === === === === ===
 # GET ELAPSED TIME
@@ -169,8 +158,7 @@ elapsed_times.at["MSurf"] = tMSurf
 elapsed_times.at["RFGini"] = tRF
 elapsed_times.at["MI"] = tMI
 elapsed_times.at["FT"] = tFT
-elapsed_times.at["OA"] = tPDE
-elapsed_times.at["OApw"] = tPDEpw
+elapsed_times.at["PDE-S"] = tPDE
 
 # === === === === === === ===
 # GETTING TOP N FEATURES
@@ -189,10 +177,7 @@ rank_df.loc[:, "RFGini"] = get_indsTopnFeatures(
 rank_df.loc[:, "FT"] = get_indsTopnFeatures(
     resFT_stat, nRetainedFeatures
 )
-rank_df.loc[:, "OA"] = pdeSegregate.top_features_[
-    :nRetainedFeatures
-]
-rank_df.loc[:, "OApw"] = pdeSegregatePW.top_features_[
+rank_df.loc[:, "PDE-S"] = pdeSegregate.top_features_[
     :nRetainedFeatures
 ]
 
@@ -201,8 +186,7 @@ scores_df.loc[:, "MSurf"] = MSurf.feature_importances_
 scores_df.loc[:, "MI"] = resMI
 scores_df.loc[:, "RFGini"] = rfGini.feature_importances_
 scores_df.loc[:, "FT"] = resFT_stat
-scores_df.loc[:, "OA"] = pdeSegregate.feature_importances_
-scores_df.loc[:, "OApw"] = pdeSegregatePW.feature_importances_
+scores_df.loc[:, "PDE-S"] = pdeSegregate.feature_importances_
 
 elapsed_times.to_csv("elapsed_times.csv")
 rank_df.to_csv("rank.csv")

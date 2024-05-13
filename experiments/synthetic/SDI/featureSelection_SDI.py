@@ -70,20 +70,20 @@ yfolder = datasetFolder.joinpath('y')
 # Carrying out feature selection for each dataset
 # 4 iterations x 3 classes
 elapsed_times = pd.DataFrame(
-    data=np.zeros((4*3, 9)),
+    data=np.zeros((4*3, 8)),
     columns=[
         "RlfF",
         "MSurf",
         "RFGini",
         "MI",
         "FT",
-        "OA", "OApw",
+        "PDE-S",
         "iteration", "nClass"
     ]
 )
 
 scores_df = pd.DataFrame(
-    data=np.zeros((4*3*4060, 10)),
+    data=np.zeros((4*3*4060, 9)),
     columns=[
         "feature",
         "RlfF",
@@ -91,14 +91,14 @@ scores_df = pd.DataFrame(
         "RFGini",
         "MI",
         "FT",
-        "OA", "OApw",
+        "PDE-S",
         "iteration", "nClass"
     ]
 )
 scores_df["feature"] = np.tile(np.arange(0, 4060, 1), 12)
 
 rank_df = pd.DataFrame(
-    data=np.zeros((4*3*120, 10)),
+    data=np.zeros((4*3*120, 9)),
     columns=[
         "rank",
         "RlfF",
@@ -106,7 +106,7 @@ rank_df = pd.DataFrame(
         "RFGini",
         "MI",
         "FT",
-        "OA", "OApw",
+        "PDE-S",
         "iteration", "nClass"
     ]
 )
@@ -166,25 +166,14 @@ for sel_idxs in [nClass2_sel_idx, nClass3_sel_idx, nClass4_sel_idx]:
         tRF = tRF_stop - tRF_start
 
         # Proposed algorithm
-        # Overlapping Areas of PDEs (total)
         tPDE_start = process_time()
         pdeSegregate = PDE_Segregate(
-            integration_method="trapz", delta=1500, bw_method="scott",
-            pairwise=False, n_jobs=-1
+            integration_method="trapz", delta=500, bw_method="scott",
+            n=2, n_jobs=-1, mode="release"
         )
         pdeSegregate.fit(X, y)
         tPDE_stop = process_time()
         tPDE = tPDE_stop - tPDE_start
-
-        # Overlapping Areas of PDEs (pairwise)
-        tPDEpw_start = process_time()
-        pdeSegregatePW = PDE_Segregate(
-            integration_method="trapz", delta=1500, bw_method="scott",
-            pairwise=True, n_jobs=-1
-        )
-        pdeSegregatePW.fit(X, y)
-        tPDEpw_stop = process_time()
-        tPDEpw = tPDEpw_stop - tPDEpw_start
 
         # === === === === === === ===
         # GETTING TOP N FEATURES
@@ -203,10 +192,7 @@ for sel_idxs in [nClass2_sel_idx, nClass3_sel_idx, nClass4_sel_idx]:
         rank_df.loc[count_r:count_r+119, "FT"] = get_indsTopnFeatures(
             resFT_stat, nRetainedFeatures
         )
-        rank_df.loc[count_r:count_r+119, "OA"] = pdeSegregate.top_features_[
-            :nRetainedFeatures
-        ]
-        rank_df.loc[count_r:count_r+119, "OApw"] = pdeSegregatePW.top_features_[
+        rank_df.loc[count_r:count_r+119, "PDE-S"] = pdeSegregate.top_features_[
             :nRetainedFeatures
         ]
         rank_df.loc[count_r:count_r+119, "iteration"] = np.repeat([d_itr], 120)
@@ -218,8 +204,7 @@ for sel_idxs in [nClass2_sel_idx, nClass3_sel_idx, nClass4_sel_idx]:
         scores_df.loc[count:count+4059, "MI"] = resMI
         scores_df.loc[count:count+4059, "RFGini"] = rfGini.feature_importances_
         scores_df.loc[count:count+4059, "FT"] = resFT_stat
-        scores_df.loc[count:count+4059, "OA"] = pdeSegregate.feature_importances_
-        scores_df.loc[count:count+4059, "OApw"] = pdeSegregatePW.feature_importances_
+        scores_df.loc[count:count+4059, "PDE-S"] = pdeSegregate.feature_importances_
 
         scores_df.loc[count:count+4059, "iteration"] = np.repeat([d_itr], 4060)
         scores_df.loc[count:count+4059, "nClass"] = np.repeat([nClass], 4060)
@@ -232,8 +217,7 @@ for sel_idxs in [nClass2_sel_idx, nClass3_sel_idx, nClass4_sel_idx]:
         elapsed_times.at[count_time, "RFGini"] = tRF
         elapsed_times.at[count_time, "MI"] = tMI
         elapsed_times.at[count_time, "FT"] = tFT
-        elapsed_times.at[count_time, "OA"] = tPDE
-        elapsed_times.at[count_time, "OApw"] = tPDEpw
+        elapsed_times.at[count_time, "PDE-S"] = tPDE
         elapsed_times.at[count_time, "iteration"] = d_itr
         elapsed_times.at[count_time, "nClass"] = nClass
         count_time += 1

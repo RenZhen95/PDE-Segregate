@@ -33,8 +33,7 @@ FSS_dict = {
     "MI": "MI",
     "mRMR": "mRMR",
     "FT": "FT",
-    "OAtotal": "PDE-S",
-    "OApw": "PDE-S*"
+    "PDE-S": "PDE-S"
 }
 
 datasetResults_dict = defaultdict()
@@ -49,9 +48,10 @@ for f in os.scandir(resultsFolder):
     datasetResults_dict[ds_name]["nThreshold"] = [
         "" for i in range(datasetResults_dict[ds_name].shape[0])
     ]
+
     for i in datasetResults_dict[ds_name].index:
-        fs = i.split('-')[0]
-        th = i.split('-')[1]
+        fs = '-'.join(i.split('-')[:-1])
+        th = i.split('-')[-1]
         if fs in list(FSS_dict.keys()):
             datasetResults_dict[ds_name].at[i, "FSS"] = FSS_dict[fs]
             datasetResults_dict[ds_name].at[i, "nThreshold"] = th
@@ -60,7 +60,7 @@ for f in os.scandir(resultsFolder):
 
 fsorder = [
     "RlfF", "MSurf", "IRlf", "LHRlf",
-    "RFGini", "MI", "mRMR", "FT", "PDE-S", "PDE-S*"
+    "RFGini", "MI", "mRMR", "FT", "PDE-S"
 ]
 
 overall_df = pd.DataFrame(
@@ -73,6 +73,7 @@ for k in datasets:
     df = datasetResults_dict[k[0]][
         ["kNN", "SVM", "Gaussian-NB", "LDA", "DT", "FSS"]
     ]
+    print(df)
     dfmean = df.groupby("FSS").mean()
     dfmean = dfmean.loc[fsorder,:]
     print(dfmean)

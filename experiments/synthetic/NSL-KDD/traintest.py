@@ -28,13 +28,14 @@ fsorder = [
     "RFGini", "MI", "mRMR", "FT", "PDE-S"
 ]
 feature_ranks = pd.read_csv(folder.joinpath("Combined/ranks.csv"), index_col=0)
-feature_ranks = feature_ranks.rename(columns={"OA": "PDE-S"})
 
 Xtrain = pd.read_csv(folder.joinpath("ProcessedCSV/Xtrain20.csv"), index_col=0).values
 ytrain = pd.read_csv(folder.joinpath("ProcessedCSV/ytrain20.csv"), index_col=0)
+ytrain = np.ravel(ytrain)
 
 Xtest  = pd.read_csv(folder.joinpath("ProcessedCSV/Xtest.csv"), index_col=0).values
 ytest = pd.read_csv(folder.joinpath("ProcessedCSV/ytest.csv"), index_col=0)
+ytest = np.ravel(ytest)
 
 results = pd.DataFrame(
     data=np.zeros((len(fsorder), 5)), index=fsorder,
@@ -57,9 +58,9 @@ for fs in fsorder:
     clfkNN_GS = GridSearchCV(
         kNN, kNN_params, cv=CV_3fold, n_jobs=-1, scoring="balanced_accuracy"
     )
-    clfkNN_GS.fit(Xtrain_reduced, y_train)
+    clfkNN_GS.fit(Xtrain_reduced, ytrain)
     results.at[fs, "kNN"] = balanced_accuracy_score(
-        ytest, clfkNN_GS.predict(Xtest_reduced)[0]
+        ytest, clfkNN_GS.predict(Xtest_reduced)
     )
     
     # SVM
@@ -68,23 +69,23 @@ for fs in fsorder:
     clfsvm_GS = GridSearchCV(
         svm_clf, svm_params, cv=CV_3fold, n_jobs=-1, scoring="balanced_accuracy"
     )
-    clfsvm_GS.fit(Xtrain_reduced, y_train)
+    clfsvm_GS.fit(Xtrain_reduced, ytrain)
     results.at[fs, "SVM"] = balanced_accuracy_score(
-        ytest, clfsvm_GS.predict(Xtest_reduced)[0]
+        ytest, clfsvm_GS.predict(Xtest_reduced)
     )
     
     # Gaussian Naive-Bayes
     naiveBayesClf = GaussianNB()
-    naiveBayesClf.fit(Xtrain_reduced, y_train)
+    naiveBayesClf.fit(Xtrain_reduced, ytrain)
     results.at[fs, "Gaussian-NB"] = balanced_accuracy_score(
-        ytest, naiveBayesClf.predict(Xtest_reduced)[0]
+        ytest, naiveBayesClf.predict(Xtest_reduced)
     )
     
     # LDA
     ldaClf = LinearDiscriminantAnalysis()
-    ldaClf.fit(Xtrain_reduced, y_train)
+    ldaClf.fit(Xtrain_reduced, ytrain)
     results.at[fs, "LDA"] = balanced_accuracy_score(
-        ytest, ldaClf.predict(Xtest_reduced)[0]
+        ytest, ldaClf.predict(Xtest_reduced)
     )
 
     # DT
@@ -93,9 +94,11 @@ for fs in fsorder:
     clfdt_GS = GridSearchCV(
         dt_clf, dt_params, cv=CV_3fold, scoring="balanced_accuracy"
     )
-    clfdt_GS.fit(Xtrain_reduced, y_train)
+    clfdt_GS.fit(Xtrain_reduced, ytrain)
     results.at[fs, "DT"] = balanced_accuracy_score(
-        ytest, clfdt_GS.predict(Xtest_reduced)[0]
+        ytest, clfdt_GS.predict(Xtest_reduced)
     )
+
+results.to_csv(folder.joinpath("traintest_clf.csv"), sep=',')
 
 sys.exit(0)

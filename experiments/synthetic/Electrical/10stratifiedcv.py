@@ -40,12 +40,12 @@ ranks_n70 = ranks_df[ranks_df["n_obs"] == 70.0]
 ranks = {30: ranks_n30, 50: ranks_n50, 70: ranks_n70}
 
 fs_methods = [
-    "RlfF", "MSurf", "IRlf", "LHRlf", "mRMR", "RFGini", "MI", "FT", "OA", "OApw",
+    "RlfF", "MSurf", "IRlf", "LHRlf", "mRMR", "RFGini", "MI", "FT", "PDE-S"
 ]
 
-# 3 nObs x 50 iterations x 10 FS x 5 Classifiers
+# 3 nObs x 50 iterations x 9 FS x 5 Classifiers
 performance_df = pd.DataFrame(
-    data=np.zeros((3*50*10*5, 5)), columns=["Bal.Acc", "nObs", "Iteration", "FS", "Clf"]
+    data=np.zeros((3*50*9*5, 5)), columns=["Bal.Acc", "nObs", "Iteration", "FS", "Clf"]
 )
 performance_df["FS"] = performance_df["FS"].astype("object")
 performance_df["Clf"] = performance_df["Clf"].astype("object")

@@ -59,7 +59,7 @@ ranks_nClass4 = ranks_df[ranks_df["nClass"] == 4.0]
 ranks = {2: ranks_nClass2, 3: ranks_nClass3, 4: ranks_nClass4}
 
 fs_methods = [
-    "RlfF", "MSurf", "IRlf", "LHRlf", "mRMR", "RFGini", "MI", "FT", "OA", "OApw"
+    "RlfF", "MSurf", "IRlf", "LHRlf", "mRMR", "RFGini", "MI", "FT", "PDE-S"
 ]
 
 # 3 nClass x 4 iterations x 10 FS x 5 Classifiers
