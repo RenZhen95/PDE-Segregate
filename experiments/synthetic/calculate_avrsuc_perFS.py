@@ -13,8 +13,7 @@ FSS_dict = {
     "MI": "MI",
     "FT": "FT",
     "mRMR": "mRMR",
-    "OA": "PDE-S",
-    "OApw": "PDE-S*"
+    "PDE-S": "PDE-S"
 }
 CLF_dict = {
     "kNN": "kNN", "SVM": "SVM", "NB": "GNB", "LDA": "LDA", "DT": "DT"
@@ -26,7 +25,7 @@ if len(sys.argv) < 2:
 else:
     folder = Path(sys.argv[1])
 
-electricalFolder = folder.joinpath("Electrical/Results")
+electricalFolder = folder.joinpath("Electrical/Results_052024/Results")
 
 # === === === ===
 # ANDOR discrete
@@ -68,7 +67,7 @@ ADDERcontinuous_10foldcv = pd.read_csv(
 
 # === === === ===
 # SD
-SDFolder = folder.joinpath("SDI/Results")
+SDFolder = folder.joinpath("SDI/Results_052024/Results")
 SDI = pd.read_csv(SDFolder.joinpath("20_SDIsuccessrates.csv"), index_col=0)
 SDI_10foldcv = pd.read_csv(
     SDFolder.joinpath("10foldcv_averaged.csv")
@@ -76,7 +75,7 @@ SDI_10foldcv = pd.read_csv(
 
 avr_df = pd.DataFrame(
     data=np.zeros((9, 6)),
-    index=["RlfF", "MSurf", "IRlf", "LHRlf", "RFGini", "MI", "mRMR", "FT", "OA"],
+    index=["RlfF", "MSurf", "IRlf", "LHRlf", "RFGini", "MI", "mRMR", "FT", "PDE-S"],
     columns=["Suc.", "kNN", "SVM", "NB", "LDA", "DT"]
 )
 

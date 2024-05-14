@@ -11,15 +11,6 @@ from sklearn.feature_selection import SelectKBest
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import mutual_info_classif, f_classif
 
-sys.path.append(
-    os.path.dirname(
-        os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        )
-    )
-)
-from pde_segregate import PDE_Segregate
-
 # Taking the top nRetainedFeatures
 def get_indsTopnFeatures(_importances, _n):
     return sorted(
@@ -29,7 +20,7 @@ def get_indsTopnFeatures(_importances, _n):
 
 if len(sys.argv) < 3:
     print(
-        "Possible usage: python3 featureSelection_synthetic.py " +
+        "Possible usage: python3 featureSelection_Electrical.py " +
         "<processedDatasets> <dataset_name>"
     )
     sys.exit(1)
@@ -46,21 +37,20 @@ with open(synthetic_datasets_pkl, "rb") as handle:
 # Carrying out feature selection for each dataset
 # 50 iterations x 3 different number of samples
 elapsed_times = pd.DataFrame(
-    data=np.zeros((50*3, 8)),
+    data=np.zeros((50*3, 7)),
     columns=[
         "RlfF",
         "MSurf",
         "RFGini",
         "MI",
         "FT",
-        "PDE-S",
         "iteration",
         "n_obs"
     ]
 )
 
 scores_df = pd.DataFrame(
-    data=np.zeros((50*3*100, 9)),
+    data=np.zeros((50*3*100, 8)),
     columns=[
         "feature",
         "RlfF",
@@ -68,7 +58,6 @@ scores_df = pd.DataFrame(
         "RFGini",
         "MI",
         "FT",
-        "PDE-S",
         "iteration",
         "n_obs"
     ]
@@ -76,7 +65,7 @@ scores_df = pd.DataFrame(
 scores_df["feature"] = np.tile(np.arange(0, 100, 1), 150)
 
 rank_df = pd.DataFrame(
-    data=np.zeros((50*3*10, 9)),
+    data=np.zeros((50*3*10, 8)),
     columns=[
         "rank",
         "RlfF",
@@ -84,7 +73,6 @@ rank_df = pd.DataFrame(
         "RFGini",
         "MI",
         "FT",
-        "PDE-S",
         "iteration",
         "n_obs"
     ]
@@ -143,16 +131,6 @@ for n_obs in synthetic_datasets.keys():
         tRF_stop = process_time()
         tRF = tRF_stop - tRF_start
 
-        # Proposed algorithm
-        tPDE_start = process_time()
-        pdeSegregate = PDE_Segregate(
-            integration_method="trapz", delta=500, bw_method="scott",
-            n=2, n_jobs=-1, mode="release"
-        )
-        pdeSegregate.fit(X, y)
-        tPDE_stop = process_time()
-        tPDE = tPDE_stop - tPDE_start
-
         # === === === === === === ===
         # GETTING TOP N FEATURES
         rank_df.loc[count_r:count_r+9, "RlfF"] = get_indsTopnFeatures(
@@ -170,9 +148,6 @@ for n_obs in synthetic_datasets.keys():
         rank_df.loc[count_r:count_r+9, "FT"] = get_indsTopnFeatures(
             resFT_stat, nRetainedFeatures
         )
-        rank_df.loc[count_r:count_r+9, "PDE-S"] = pdeSegregate.top_features_[
-            :nRetainedFeatures
-        ]
         rank_df.loc[count_r:count_r+9, "iteration"] = np.repeat([i], 10)
         rank_df.loc[count_r:count_r+9, "n_obs"] = np.repeat([n_obs], 10)
         count_r += 10
@@ -182,7 +157,6 @@ for n_obs in synthetic_datasets.keys():
         scores_df.loc[count:count+99, "MI"] = resMI
         scores_df.loc[count:count+99, "RFGini"] = rfGini.feature_importances_
         scores_df.loc[count:count+99, "FT"] = resFT_stat
-        scores_df.loc[count:count+99, "PDE-S"] = pdeSegregate.feature_importances_
 
         scores_df.loc[count:count+99, "iteration"] = np.repeat([i], 100)
         scores_df.loc[count:count+99, "n_obs"] = np.repeat([n_obs], 100)
@@ -195,7 +169,6 @@ for n_obs in synthetic_datasets.keys():
         elapsed_times.at[count_time, "RFGini"] = tRF
         elapsed_times.at[count_time, "MI"] = tMI
         elapsed_times.at[count_time, "FT"] = tFT
-        elapsed_times.at[count_time, "PDE-S"] = tPDE
         elapsed_times.at[count_time, "iteration"] = i
         elapsed_times.at[count_time, "n_obs"] = n_obs
         count_time += 1

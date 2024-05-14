@@ -6,16 +6,9 @@ from pathlib import Path
 from time import process_time
 from collections import defaultdict
 
-sys.path.append(
-    os.path.dirname(
-        os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    )
-)
 from skrebate import ReliefF, MultiSURF
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import mutual_info_classif, f_classif
-
-from pde_segregate import PDE_Segregate
 
 # Taking the top nRetainedFeatures
 def get_indsTopnFeatures(featImportances, nCap):
@@ -132,16 +125,6 @@ for dataset in datasets_dict.keys():
     tRF_stop = process_time()
     tRF = tRF_stop - tRF_start
 
-    # Proposed algorithm
-    tPDE_start = process_time()
-    pdeSegregate = PDE_Segregate(
-        integration_method="trapz", delta=500, bw_method="scott",
-        n=2, n_jobs=-1, mode="release"
-    )
-    pdeSegregate.fit(X, y)
-    tPDE_stop = process_time()
-    tPDE = tPDE_stop - tPDE_start
-
     # === === === === === === ===
     # GETTING TOP N FEATURES
     inds_topFeatures_RlfF = get_indsTopnFeatures(
@@ -166,9 +149,6 @@ for dataset in datasets_dict.keys():
     inds_topFeatures_FT = get_indsTopnFeatures(
         resFT_stat, nRetainedFeatures
     )
-    inds_topFeatures_PDES = pdeSegregate.get_topnFeatures(
-        nRetainedFeatures
-    )
 
     inds_topFeatures = {
         "RlfF": inds_topFeatures_RlfF,
@@ -178,8 +158,7 @@ for dataset in datasets_dict.keys():
         "RFGini": inds_topFeatures_RFGini,
         "MI": inds_topFeatures_MI,
         "mRMR": inds_topFeatures_mRMR,
-        "FT": inds_topFeatures_FT,
-        "PDE-S": inds_topFeatures_PDES
+        "FT": inds_topFeatures_FT
     }
     dataset_inds_topFeatures[dataset] = inds_topFeatures
 
@@ -190,8 +169,7 @@ for dataset in datasets_dict.keys():
         "MSurf": tMSurf,
         "MI": tMI,
         "RFGini": tRF,
-        "FT": tFT,
-        "PDE-S": tPDE
+        "FT": tFT
     }
     elapsed_times_perDS[dataset] = elapsed_times
 

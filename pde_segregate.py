@@ -106,6 +106,8 @@ class PDE_Segregate():
         if self.leftEnd != 0.0:
             leftGrid = np.arange(self.leftEnd, 0.0, self.grid_width)
             self.XGrid = np.concatenate((leftGrid, mid_grid))
+        else:
+            self.XGrid = mid_grid
 
         if self.rightEnd != 1.0:
             rightGrid = np.arange(1.0, self.rightEnd, self.grid_width)
@@ -135,7 +137,9 @@ class PDE_Segregate():
         print(
             "Constructing and evaluating the KDEs per class for every feature ... "
         )
-
+        self.pdes = []
+        self.grids = []
+        
         delayed_calls = (
             delayed(
                 self.construct_kernel
@@ -143,12 +147,17 @@ class PDE_Segregate():
         )
         res = Parallel(n_jobs=self.n_jobs, verbose=0)(delayed_calls)
         if self.mode == "development":
-            self.feature_kernels = [item[0] for item in res]
-            self.pdes = [item[1] for item in res]
-            self.grids = [item[2] for item in res]
+            self.feature_kernels = []
+            for item in res:
+                self.feature_kernels.append(item[0])
+                self.pdes.append(item[1])
+                self.grids.append(item[2])
         elif self.mode == "release":
-            self.pdes = [item[0] for item in res]
-            self.grids = [item[1] for item in res]
+            for item in res:
+                self.pdes.append(item[0])
+                self.grids.append(item[1])
+            # self.pdes = [item[0] for item in res]
+            # self.grids = [item[1] for item in res]
 
         print(" - Kernels constructed!")
 
@@ -327,7 +336,7 @@ class PDE_Segregate():
     def plot_overlapAreas(
             self, feat_idx, feat_names=None, _ylim=None, _title=None,
             show_samples=False, savefig=None, _format="svg",
-            legend=False, return_normVector=False, _ax=None
+            legend=False, _ax=None
     ):
         """
         Function to plot intersection areas for a given feature.
@@ -342,8 +351,6 @@ class PDE_Segregate():
         savefig : str, None
          - If str, then figure will be saved as file name given.
         """
-        normalizedX_dict = self.normalize_feature_vector(feat_idx)
-
         OA = self.intersectionAreas[feat_idx]
 
         yStack = []
@@ -360,12 +367,12 @@ class PDE_Segregate():
 
             # Plotting the probabilty density estimate per class
             if legend == "intersection":
-                p = _ax.plot(self.XGrid, p_y, alpha=0.7)
+                p = _ax.plot(self.grids[feat_idx], p_y, alpha=0.7)
             else:
                 if legend:
-                    p = _ax.plot(self.XGrid, p_y, alpha=0.7, label=y)
+                    p = _ax.plot(self.grids[feat_idx], p_y, alpha=0.7, label=y)
                 else:
-                    p = _ax.plot(self.XGrid, p_y, alpha=0.7)
+                    p = _ax.plot(self.grids[feat_idx], p_y, alpha=0.7)
 
             # Get line colors
             linecolors.append(p[0].get_color())
@@ -375,7 +382,7 @@ class PDE_Segregate():
             yMax = _ax.get_ylim()[1]
             for i, k in enumerate(self.pdes[feat_idx].keys()):
                 _ax.vlines(
-                    normalizedX_dict[k], 0.0, 0.03*yMax,
+                    self.y_segregatedGroup[k][feat_idx], 0.0, 0.03*yMax,
                     color=linecolors[i], alpha=0.7
                 )
 
@@ -386,12 +393,12 @@ class PDE_Segregate():
             _label = r"$A_{i} = $"
             _label += str(round(OA, 3))
             fill_poly = _ax.fill_between(
-                self.XGrid, 0, yIntersection, label=_label,
+                self.grids[feat_idx], 0, yIntersection, label=_label,
                 color="lightgray", edgecolor="lavender"
             )
         else:
             fill_poly = _ax.fill_between(
-                self.XGrid, 0, yIntersection, color="lightgray", edgecolor="lavender"
+                self.grids[feat_idx], 0, yIntersection, color="lightgray", edgecolor="lavender"
             )
 
         fill_poly.set_hatch('xxx')
@@ -401,13 +408,18 @@ class PDE_Segregate():
         else:
             _ax.set_xlabel(f"Feature {feat_idx}", fontsize='large')
 
-        xrange = self.XGrid.max() - self.XGrid.min()
+        xrange = self.grids[feat_idx].max() - self.grids[feat_idx].min()
         _ax.set_xlim(
-            (self.XGrid.min()-(xrange*0.05), self.XGrid.max()+(xrange*0.05))
+            (
+                self.grids[feat_idx].min()-(xrange*0.05),
+                self.grids[feat_idx].max()+(xrange*0.05)
+            )
         )
         _ax.set_xticks(
             np.arange(
-                self.XGrid.min()-(xrange*0.05), self.XGrid.max()+(xrange*0.05), 0.2
+                self.grids[feat_idx].min()-(xrange*0.05),
+                self.grids[feat_idx].max()+(xrange*0.05),
+                0.2
             )
         )
         if not _ylim is None:
@@ -423,6 +435,3 @@ class PDE_Segregate():
             if not savefig is None:
                 print(f"Plotting {savefig}.{_format} ... ")
                 plt.savefig(f"{savefig}.{_format}", format=_format)
-
-        if return_normVector:
-            return normalizedX_dict

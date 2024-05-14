@@ -9,25 +9,6 @@ from sklearn.feature_selection import SelectKBest
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import mutual_info_classif, f_classif
 
-sys.path.append(
-    os.path.dirname(
-        os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        )
-    )
-)
-from pde_segregate import PDE_Segregate
-
-from sklearn.model_selection import KFold, GridSearchCV
-
-from sklearn.svm import SVC
-from sklearn.naive_bayes import GaussianNB
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-
-from sklearn.metrics import balanced_accuracy_score
-
 # Taking the top nRetainedFeatures
 def get_indsTopnFeatures(_importances, _n):
     return sorted(
@@ -62,41 +43,38 @@ nRetainedFeatures = 16
 # === === === ===
 # Carrying out feature selection for each dataset
 elapsed_times = pd.Series(
-    data=np.zeros(6),
+    data=np.zeros(5),
     index=[
         "RlfF",
         "MSurf",
         "RFGini",
         "MI",
-        "FT",
-        "PDE-S"
+        "FT"
     ]
 )
 
 scores_df = pd.DataFrame(
-    data=np.zeros((X.shape[1], 7)),
+    data=np.zeros((X.shape[1], 6)),
     columns=[
         "feature",
         "RlfF",
         "MSurf",
         "RFGini",
         "MI",
-        "FT",
-        "PDE-S"
+        "FT"
     ]
 )
 scores_df["feature"] = np.arange(0, X.shape[1], 1)
 
 rank_df = pd.DataFrame(
-    data=np.zeros((16, 7)),
+    data=np.zeros((16, 6)),
     columns=[
         "rank",
         "RlfF",
         "MSurf",
         "RFGini",
         "MI",
-        "FT",
-        "PDE-S"
+        "FT"
     ]
 )
 rank_df["rank"] = np.arange(0, 16, 1)
@@ -141,16 +119,6 @@ rfGini.fit(X, y)
 tRF_stop = process_time()
 tRF = tRF_stop - tRF_start
 
-# Proposed algorithm
-tPDE_start = process_time()
-pdeSegregate = PDE_Segregate(
-    integration_method="trapz", delta=500, bw_method="scott",
-    n=2, n_jobs=-1, mode="release"
-)
-pdeSegregate.fit(X, y)
-tPDE_stop = process_time()
-tPDE = tPDE_stop - tPDE_start
-
 # === === === === === === ===
 # GET ELAPSED TIME
 elapsed_times.at["RlfF"] = tRlfF
@@ -158,7 +126,6 @@ elapsed_times.at["MSurf"] = tMSurf
 elapsed_times.at["RFGini"] = tRF
 elapsed_times.at["MI"] = tMI
 elapsed_times.at["FT"] = tFT
-elapsed_times.at["PDE-S"] = tPDE
 
 # === === === === === === ===
 # GETTING TOP N FEATURES
@@ -177,16 +144,12 @@ rank_df.loc[:, "RFGini"] = get_indsTopnFeatures(
 rank_df.loc[:, "FT"] = get_indsTopnFeatures(
     resFT_stat, nRetainedFeatures
 )
-rank_df.loc[:, "PDE-S"] = pdeSegregate.top_features_[
-    :nRetainedFeatures
-]
 
 scores_df.loc[:, "RlfF"] = RlfF.feature_importances_
 scores_df.loc[:, "MSurf"] = MSurf.feature_importances_
 scores_df.loc[:, "MI"] = resMI
 scores_df.loc[:, "RFGini"] = rfGini.feature_importances_
 scores_df.loc[:, "FT"] = resFT_stat
-scores_df.loc[:, "PDE-S"] = pdeSegregate.feature_importances_
 
 elapsed_times.to_csv("elapsed_times.csv")
 rank_df.to_csv("rank.csv")
