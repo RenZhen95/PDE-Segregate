@@ -15,23 +15,25 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 from sklearn.metrics import balanced_accuracy_score
 
-if len(sys.argv) < 3:
+if len(sys.argv) < 4:
     print(
-        "Possible usage: python3.11 10stratifiedfoldcv.py <ElectricalFolder> <datasetName>"
+        "Possible usage: python3.11 10stratifiedcv.py <datasetsFolder> " +
+        "<datasetName> <folder>"
     )
     sys.exit(1)
 else:
-    ElectricalFolder = Path(sys.argv[1])
+    datasetsFolder = Path(sys.argv[1])
     datasetName = sys.argv[2]
+    folder = Path(sys.argv[3])
 
 # Loading datasets
-with open(ElectricalFolder.joinpath(f"{datasetName}_datasets.pkl"), "rb") as handle:
+with open(datasetsFolder.joinpath(f"{datasetName}_datasets.pkl"), "rb") as handle:
     datasets = pickle.load(handle)
 
 # Reading the top 10 features
-resultsFolder = ElectricalFolder.joinpath("Combined")
+combinedFolder = folder.joinpath("Combined")
 ranks_df = pd.read_csv(
-    resultsFolder.joinpath(f"{datasetName}_ranks.csv"), index_col=0
+    combinedFolder.joinpath(f"{datasetName}_ranks.csv"), index_col=0
 )
 
 ranks_n30 = ranks_df[ranks_df["n_obs"] == 30.0]
@@ -40,12 +42,12 @@ ranks_n70 = ranks_df[ranks_df["n_obs"] == 70.0]
 ranks = {30: ranks_n30, 50: ranks_n50, 70: ranks_n70}
 
 fs_methods = [
-    "RlfF", "MSurf", "IRlf", "LHRlf", "mRMR", "RFGini", "MI", "FT", "PDE-S"
+    "RlfF", "MSurf", "IRlf", "LHRlf", "mRMR", "RFGini", "MI", "FT"
 ]
 
-# 3 nObs x 50 iterations x 9 FS x 5 Classifiers
+# 3 nObs x 50 iterations x 8 FS x 5 Classifiers
 performance_df = pd.DataFrame(
-    data=np.zeros((3*50*9*5, 5)), columns=["Bal.Acc", "nObs", "Iteration", "FS", "Clf"]
+    data=np.zeros((3*50*8*5, 5)), columns=["Bal.Acc", "nObs", "Iteration", "FS", "Clf"]
 )
 performance_df["FS"] = performance_df["FS"].astype("object")
 performance_df["Clf"] = performance_df["Clf"].astype("object")
@@ -168,14 +170,10 @@ for nObs in [30, 50, 70]:
             performance_df.at[count+4, "Clf"] = "DT"
             count += 5
 
-performance_df.to_csv(
-    ElectricalFolder.joinpath(f"Results/{datasetName}10foldcv.csv")
-)
+performance_df.to_csv(f"{datasetName}10foldcv.csv")
 
 averaged_df = performance_df.groupby(["nObs", "FS", "Clf"]).mean()
 averaged_df = averaged_df.drop(columns=["Iteration"])
-averaged_df.to_csv(
-    ElectricalFolder.joinpath(f"Results/{datasetName}10foldcv_averaged.csv")
-)
+averaged_df.to_csv(f"{datasetName}10foldcv_averaged.csv")
 
 sys.exit(0)

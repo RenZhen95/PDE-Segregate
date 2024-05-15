@@ -14,14 +14,14 @@ else:
 
 # Reading results for the following datasets
 datasets = [
-    ("cns", "CNS"),
-    ("lung", "Lung"),
-    ("leuk", "Leukemia"),
-    ("colon", "Colon"),
-    ("pros3", "Prostrate"),
-    ("gcm", "GCM"),
-    ("geneExpressionCancerRNA", "Cancer RNA-Gene"),
-    ("PersonGaitDataSet", "Person Gait Classification")
+    "cns",
+    "lung",
+    "leuk",
+    "colon",
+    "pros3",
+    "gcm",
+    "geneExpressionCancerRNA",
+    "PersonGaitDataSet"
 ]
 # FSS name-mapper
 FSS_dict = {

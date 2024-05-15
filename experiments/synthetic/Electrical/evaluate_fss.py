@@ -8,6 +8,10 @@ if len(sys.argv) < 3:
     print(
         "Possible usage: python3.11 evaluate_fss.py <resultsFolder> <datasetName>"
     )
+    print(
+        "<resultsFolder> should be the folder with the combined ranks from all the " +
+        "different FS methods."
+    )
     sys.exit(1)
 else:
     resultsFolder = Path(sys.argv[1])
@@ -136,11 +140,7 @@ average_successrate.loc[70] = avrsuccess_obs70
 
 print(average_successrate)
 
-average_successrate.to_csv(
-    Path(os.path.dirname(
-        resultsFolder
-    )).joinpath(f"Results/{datasetName}_successrates.csv")
-)
+average_successrate.to_csv(f"{datasetName}_successrates.csv")
 
 sys.exit(0)
 

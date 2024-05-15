@@ -151,8 +151,8 @@ scores_df.loc[:, "MI"] = resMI
 scores_df.loc[:, "RFGini"] = rfGini.feature_importances_
 scores_df.loc[:, "FT"] = resFT_stat
 
-elapsed_times.to_csv("elapsed_times.csv")
-rank_df.to_csv("rank.csv")
-scores_df.to_csv("scores_df.csv")
+elapsed_times.to_csv("NSLKDDelapsed_times.csv")
+rank_df.to_csv("NSLKDDrank.csv")
+scores_df.to_csv("NSLKDDscores_df.csv")
 
 sys.exit(0)

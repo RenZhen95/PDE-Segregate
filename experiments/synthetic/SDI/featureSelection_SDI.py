@@ -68,7 +68,8 @@ elapsed_times = pd.DataFrame(
         "RFGini",
         "MI",
         "FT",
-        "iteration", "nClass"
+        "iteration",
+        "nClass"
     ]
 )
 
@@ -81,7 +82,8 @@ scores_df = pd.DataFrame(
         "RFGini",
         "MI",
         "FT",
-        "iteration", "nClass"
+        "iteration",
+        "nClass"
     ]
 )
 scores_df["feature"] = np.tile(np.arange(0, 4060, 1), 12)
@@ -95,7 +97,8 @@ rank_df = pd.DataFrame(
         "RFGini",
         "MI",
         "FT",
-        "iteration", "nClass"
+        "iteration",
+        "nClass"
     ]
 )
 rank_df["rank"] = np.tile(np.arange(0, 120, 1), 12)

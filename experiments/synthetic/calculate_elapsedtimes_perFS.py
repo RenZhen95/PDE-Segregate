@@ -14,7 +14,7 @@ else:
     resultsFolder = Path(sys.argv[1])
 
 # Getting elapsed times (SDI)
-SDIfolder = resultsFolder.joinpath("SDI/Results_052024/Combined")
+SDIfolder = resultsFolder.joinpath("SDI/Results_052024_1p5/Combined")
 SDI_df = pd.read_csv(
     SDIfolder.joinpath("SDIelapsedtimes.csv"), index_col=0
 )
@@ -25,7 +25,7 @@ SDIaverage_df.rename(
 )
 
 # Getting elapsed times (Electrical)
-Electricalfolder = resultsFolder.joinpath("Electrical/Results_052024/Combined")
+Electricalfolder = resultsFolder.joinpath("Electrical/Results_052024_1p5/Combined")
 ANDORdiscrete_df = pd.read_csv(
     Electricalfolder.joinpath(f"ANDORdiscrete_elapsedtimes.csv"), index_col=0
 )
@@ -95,9 +95,9 @@ average_df = average_df[
         "RFGini", "MI", "mRMR", "FT", "PDE-S"
     ]
 ]
-print(average_df.round(decimals=2))
+print(average_df.round(decimals=3))
 avrOfAverages = average_df.loc['Average',:].mean()
-print(f"Average of averages: {round(avrOfAverages,2)}")
+print(f"Average of averages: {round(avrOfAverages,3)}")
 print(average_df.to_latex(float_format="%.3f"))
 
 sys.exit(0)

@@ -14,16 +14,15 @@ if len(sys.argv) < 4:
         "Possible usage: python3.11 evaluate_fss.py <resultsFolder> " +
         "<trueSignatures> <nTop>"
     )
+    print(
+        "<resultsFolder> should be the folder with the combined ranks from all the " +
+        "different FS methods."
+    )
     sys.exit(1)
 else:
     resultsFolder = Path(sys.argv[1])
     trueSignatures_folder = Path(sys.argv[2])
     nTop = int(sys.argv[3])
-
-# Reading the feature scores
-feature_scores_df = pd.read_csv(
-    resultsFolder.joinpath("SDIfeaturescores.csv"), index_col=0
-)
 
 # Reading the top features
 ranks_df = pd.read_csv(
@@ -59,6 +58,10 @@ trueSignatures = {
 }
 
 # Features Summary
+# Reading the feature scores
+feature_scores_df = pd.read_csv(
+    resultsFolder.joinpath("SDIfeaturescores.csv"), index_col=0
+)
 features = feature_scores_df["feature"].to_numpy()
 nFeatures = len(list(set(features)))
 
@@ -200,10 +203,6 @@ average_successrate.loc[2.0] = avrsuccess_nClass2
 average_successrate.loc[3.0] = avrsuccess_nClass3
 average_successrate.loc[4.0] = avrsuccess_nClass4
 
-average_successrate.to_csv(
-    Path(os.path.dirname(
-        resultsFolder
-    )).joinpath(f"Results/{nTop}_SDIsuccessrates.csv")
-)
+average_successrate.to_csv(f"{nTop}_SDIsuccessrates.csv")
 
 sys.exit(0)

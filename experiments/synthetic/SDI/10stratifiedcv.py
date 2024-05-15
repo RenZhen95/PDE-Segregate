@@ -17,10 +17,13 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.metrics import balanced_accuracy_score
 
 if len(sys.argv) < 2:
-    print("Possible usage: python3.11 10foldcv.py <SDIFolder>")
+    print(
+        "Possible usage: python3.11 10stratifiedcv.py <datasetsFolder> <folder>"
+    )
     sys.exit(1)
 else:
-    SDIFolder = Path(sys.argv[1])
+    datasetsFolder = Path(sys.argv[1])
+    folder = Path(sys.argv[2])
 
 XFolder = SDIFolder.joinpath('X')
 yFolder = SDIFolder.joinpath('y')
@@ -50,8 +53,10 @@ X_dict = {2: nClass2_X, 3: nClass3_X, 4: nClass4_X}
 y_dict = {2: nClass2_y, 3: nClass3_y, 4: nClass4_y}
 
 # Reading the top 120 features
-resultsFolder = SDIFolder.joinpath("Combined")
-ranks_df = pd.read_csv(resultsFolder.joinpath("SDIranks.csv"), index_col=0)
+combinedFolder = folder.joinpath("Combined")
+ranks_df = pd.read_csv(
+    combinedFolder.joinpath("SDIranks.csv"), index_col=0
+)
 
 ranks_nClass2 = ranks_df[ranks_df["nClass"] == 2.0]
 ranks_nClass3 = ranks_df[ranks_df["nClass"] == 3.0]
@@ -59,12 +64,12 @@ ranks_nClass4 = ranks_df[ranks_df["nClass"] == 4.0]
 ranks = {2: ranks_nClass2, 3: ranks_nClass3, 4: ranks_nClass4}
 
 fs_methods = [
-    "RlfF", "MSurf", "IRlf", "LHRlf", "mRMR", "RFGini", "MI", "FT", "PDE-S"
+    "RlfF", "MSurf", "IRlf", "LHRlf", "mRMR", "RFGini", "MI", "FT"
 ]
 
-# 3 nClass x 4 iterations x 10 FS x 5 Classifiers
+# 3 nClass x 4 iterations x 8 FS x 5 Classifiers
 performance_df = pd.DataFrame(
-    data=np.zeros((3*4*10*5, 5)), columns=["Bal.Acc", "nClass", "Iteration", "FS", "Clf"]
+    data=np.zeros((3*4*8*5, 5)), columns=["Bal.Acc", "nClass", "Iteration", "FS", "Clf"]
 )
 performance_df["FS"] = performance_df["FS"].astype("object")
 performance_df["Clf"] = performance_df["Clf"].astype("object")
@@ -187,10 +192,10 @@ for nClass in [2, 3, 4]:
             performance_df.at[count+4, "Clf"] = "DT"
             count += 5
 
-performance_df.to_csv(SDIFolder.joinpath("Results/10foldcv.csv"))
+performance_df.to_csv("10foldcv.csv")
 
 averaged_df = performance_df.groupby(["nClass", "FS", "Clf"]).mean()
 averaged_df = averaged_df.drop(columns=["Iteration"])
-averaged_df.to_csv(SDIFolder.joinpath("Results/10foldcv_averaged.csv"))
+averaged_df.to_csv("10foldcv_averaged.csv")
 
 sys.exit(0)

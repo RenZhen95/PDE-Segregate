@@ -6,19 +6,19 @@ from pathlib import Path
 
 if len(sys.argv) < 2:
     print(
-        "Possible usage: python3.11 combine_matlabfss.py <resultsFolder>"
+        "Possible usage: python3.11 combine_fss.py <folder>"
     )
     sys.exit(1)
 else:
-    resultsFolder = Path(sys.argv[1])
+    folder = Path(sys.argv[1])
 
 # === === === ===
-# Feature Scores
-with open(resultsFolder.joinpath("SDIfeature_scores.pkl"), "rb") as handle:
+# Feature Scores (other FS)
+with open(folder.joinpath("OtherFS/SDIfeature_scores.pkl"), "rb") as handle:
     pyFSS_featurescores = pickle.load(handle)
 
 # Reading weights from IRelief
-IRlf_folder = resultsFolder.joinpath("IRelief")
+IRlf_folder = folder.joinpath("IRelief")
 IRlf_nClass2 = pd.read_csv(
     IRlf_folder.joinpath("WeightsI_nClass2.csv"), header=None
 )
@@ -44,7 +44,7 @@ for IRlf_featurescores in [
 pyFSS_featurescores["IRlf"] = IRlf
 
 # Reading weights from LHRelief
-LHRlf_folder = resultsFolder.joinpath("LHRelief")
+LHRlf_folder = folder.joinpath("LHRelief")
 LHRlf_nClass2 = pd.read_csv(
     LHRlf_folder.joinpath("WeightsLM_nClass2.csv"), header=None
 )
@@ -69,17 +69,23 @@ for LHRlf_featurescores in [
             i += 1
 pyFSS_featurescores["LHRlf"] = LHRlf
 
+# Reading scores from PDE-S
+with open(folder.joinpath(f"PDE-S/SDIPDE-S_feature_scores.pkl"), "rb") as handle:
+    pdes_featurescores = pickle.load(handle)
+
+pyFSS_featurescores["PDE-S"] = pdes_featurescores["PDE-S"]
+
 
 # === === === ===
 # Ranks
-with open(resultsFolder.joinpath("SDIranks.pkl"), "rb") as handle:
+with open(folder.joinpath("OtherFS/SDIranks.pkl"), "rb") as handle:
     pyFSS_ranks = pickle.load(handle)
 
 # Reading ranks from mRMR (Ding, 2005)
 # Minus 1 because MATLAB indexing starts from 1 and not 0
 # From MATLAB documentation:
 #   If idx(3) is 5 :: The third most important featurey is the 10th column
-mRMR_folder = resultsFolder.joinpath("mRMR")
+mRMR_folder = folder.joinpath("mRMR")
 mRMR_nClass2 = pd.read_csv(
     mRMR_folder.joinpath("mRMR_nClass2.csv"), header=None
 )
@@ -169,10 +175,17 @@ for mRMR_ranks_df in [mRMR_nClass2_120, mRMR_nClass3_120, mRMR_nClass4_120]:
 pyFSS_ranks["mRMR"] = mRMR_ranks
 
 
+# Reading ranks from PDE-S
+with open(folder.joinpath(f"PDE-S/SDIPDE-S_ranks.pkl"), "rb") as handle:
+    pdes_ranks = pickle.load(handle)
+
+pyFSS_ranks["PDE-S"] = pdes_ranks["PDE-S"]
+
+
 # === === === ===
 # Elapsed Times
 py_times = pd.read_csv(
-    resultsFolder.joinpath("SDIelapsed_times.csv"), index_col=0
+    folder.joinpath("OtherFS/SDIelapsed_times.csv"), index_col=0
 )
 IRlf_times = pd.read_csv(
     IRlf_folder.joinpath("tI.csv"), header=None
@@ -183,12 +196,16 @@ LHRlf_times = pd.read_csv(
 mRMR_times = pd.read_csv(
     mRMR_folder.joinpath("tmRMR.csv"), header=None
 )
+pdes_times = pd.read_csv(
+    folder.joinpath(f"PDE-S/SDIPDE-S_elapsed_times.csv"), index_col=0
+)
 py_times["IRlf"]  = IRlf_times.stack().values
 py_times["LHRlf"] = LHRlf_times.stack().values
 py_times["mRMR"] = mRMR_times.stack().values
+py_times["PDE-S"] = pdes_times["PDE-S"]
 
-pyFSS_featurescores.to_csv(resultsFolder.joinpath("Combined/SDIfeaturescores.csv"))
-pyFSS_ranks.to_csv(resultsFolder.joinpath("Combined/SDIranks.csv"))
-py_times.to_csv(resultsFolder.joinpath("Combined/SDIelapsedtimes.csv"))
+pyFSS_featurescores.to_csv(folder.joinpath("Combined/SDIfeaturescores.csv"))
+pyFSS_ranks.to_csv(folder.joinpath("Combined/SDIranks.csv"))
+py_times.to_csv(folder.joinpath("Combined/SDIelapsedtimes.csv"))
 
 sys.exit(0)

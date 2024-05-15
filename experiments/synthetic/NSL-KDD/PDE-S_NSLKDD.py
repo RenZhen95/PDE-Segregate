@@ -14,7 +14,7 @@ sys.path.append(
 from pde_segregate import PDE_Segregate
 
 if len(sys.argv) < 2:
-    print("Possible usage: python3.11 PDE-S.py <folder>")
+    print("Possible usage: python3.11 PDE-S_NSLKDD.py <folder>")
     sys.exit(1)
 else:
     folder = Path(sys.argv[1])

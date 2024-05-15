@@ -4,25 +4,30 @@ import pandas as pd
 from pathlib import Path
 
 if len(sys.argv) < 3:
-    print("Possible usage: python3.11 <resultsfolder> <datasetname>")
+    print("Possible usage: python3.11 <folder> <datasetname>")
     sys.exit(1)
 else:
-    resultsfolder = Path(sys.argv[1])
+    folder = Path(sys.argv[1])
     datasetname = sys.argv[2]
+
+averaged10foldcv = pd.read_csv(
+    folder.joinpath(f"OtherFS/{datasetname}10foldcv_averaged.csv")
+)
+pdes_averaged10foldcv = pd.read_csv(
+    folder.joinpath(f"PDE-S/{datasetname}10foldcvPDE-S_averaged.csv")
+)
+averaged10foldcv = pd.concat([averaged10foldcv, pdes_averaged10foldcv])
+averaged10foldcv = averaged10foldcv.reset_index(drop=True)
 
 clf_dict = {
     "kNN": "kNN", "SVM": "SVM", "NB": "GNB", "LDA": "LDA", "DT": "DT"
 }
-
-averaged10foldcv = pd.read_csv(
-    resultsfolder.joinpath(f"{datasetname}10foldcv_averaged.csv")
-)
 n30 = averaged10foldcv[averaged10foldcv["nObs"]==30.0]
 n50 = averaged10foldcv[averaged10foldcv["nObs"]==50.0]
 n70 = averaged10foldcv[averaged10foldcv["nObs"]==70.0]
 
 sucrates = pd.read_csv(
-    resultsfolder.joinpath(f"{datasetname}_successrates.csv"), index_col=0
+    folder.joinpath(f"Suc/{datasetname}_successrates.csv"), index_col=0
 )
 sucrates_n30 = sucrates.loc[30]
 sucrates_n50 = sucrates.loc[50]
@@ -57,7 +62,7 @@ n70_df = fill_df(n70, sucrates_n70)
 
 final_df = pd.concat([n30_df, n50_df, n70_df])
 
-final_df.to_excel(resultsfolder.joinpath(f"{datasetname}_latexTable.xlsx"))
+final_df.to_excel(folder.joinpath(f"{datasetname}_latexTable.xlsx"))
 
 sys.exit(0)
 
