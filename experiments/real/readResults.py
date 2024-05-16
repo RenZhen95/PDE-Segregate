@@ -6,25 +6,27 @@ import matplotlib.pyplot as plt
 import seaborn as sns; sns.set()
 from collections import defaultdict
 
-if len(sys.argv) < 2:
-    print("Possible usage: python3 readResults.py <resultsFolder>")
+if len(sys.argv) < 4:
+    print(
+        "Possible usage: python3 readResults.py <resultsFolder> " +
+        "<datasetname> <xl_nslkdd>"
+    )
     sys.exit(1)
 else:
     resultsFolder = Path(sys.argv[1])
+    datasetname = sys.argv[2]
+    xl_nslkdd = Path(sys.argv[3])
 
 # Reading results for the following datasets
-# datasets_binary = [
-#     ("cns", "CNS"),
-#     ("lung", "Lung"),
-#     ("leuk", "Leukemia"),
-#     ("colon", "Colon"),
-#     ("pros3", "Prostrate"),
-#     ("gcm", "GCM")
-# ]
-datasets_binary = [
-    ("dlbcl", "DLBCL"),
-    ("pros1", "Prostrate1"),
-    ("pros2", "Prostrate2")
+datasets = [
+    "cns",
+    "lung",
+    "leuk",
+    "colon",
+    "pros3",
+    "gcm",
+    "geneExpressionCancerRNA",
+    "PersonGaitDataSet"
 ]
 # FSS name-mapper
 FSS_dict = {
@@ -36,11 +38,14 @@ FSS_dict = {
     "MI": "MI",
     "mRMR": "mRMR",
     "FT": "FT",
-    "OAtotal": "PDE-S",
-    "OApw": "PDE-S*"
+    "PDE-S": "PDE-S"
 }
 
-# 6 benchmark datasets
+fsorder = [
+    "RlfF", "MSurf", "IRlf", "LHRlf",
+    "RFGini", "MI", "mRMR", "FT", "PDE-S"
+]
+
 datasetResults_dict = defaultdict()
 
 for f in os.scandir(resultsFolder):
@@ -53,60 +58,76 @@ for f in os.scandir(resultsFolder):
     datasetResults_dict[ds_name]["nThreshold"] = [
         "" for i in range(datasetResults_dict[ds_name].shape[0])
     ]
+
     for i in datasetResults_dict[ds_name].index:
-        fs = i.split('-')[0]
-        th = i.split('-')[1]
+        fs = '-'.join(i.split('-')[:-1])
+        th = i.split('-')[-1]
         if fs in list(FSS_dict.keys()):
             datasetResults_dict[ds_name].at[i, "FSS"] = FSS_dict[fs]
             datasetResults_dict[ds_name].at[i, "nThreshold"] = th
         else:
             datasetResults_dict[ds_name].drop([i], inplace=True)
 
-datasetResults_binary = defaultdict()
+    datasetResults_dict[ds_name].set_index("FSS", inplace=True)
 
-fsorder = [
-    "RlfF", "MSurf", "IRlf", "LHRlf",
-    "RFGini", "MI", "mRMR", "FT", "PDE-S"
-]
+overall_df = pd.DataFrame(
+    data=np.zeros((len(fsorder), 5)), index=fsorder,
+    columns=["kNN", "SVM", "Gaussian-NB", "LDA", "DT"]
+)
 
-for k in datasets_binary:
-    print(k)
-    df = datasetResults_dict[k[0]]
-    df = df.drop([i for i in list(df.index) if "OApw" in i])
+# Reading the individual dataset
+df25 = datasetResults_dict[datasetname][
+    datasetResults_dict[datasetname]["nThreshold"] == '25'
+][["kNN", "SVM", "Gaussian-NB", "LDA", "DT"]]
+df25.loc["Average"] = df25.mean()
 
-    df25  = df[df["nThreshold"]=="25"][
-        ["kNN", "SVM", "Gaussian-NB", "LDA", "DT", "FSS"]
-    ]; df25 = df25.set_index("FSS")
-    df25 = df25.loc[fsorder,:]
-    df25.loc["Average", :] = df25.mean()
+df50 = datasetResults_dict[datasetname][
+    datasetResults_dict[datasetname]["nThreshold"] == '50'
+][["kNN", "SVM", "Gaussian-NB", "LDA", "DT"]]
+df50.loc["Average"] = df50.mean()
 
-    df50  = df[df["nThreshold"]=="50"][
-        ["kNN", "SVM", "Gaussian-NB", "LDA", "DT", "FSS"]
-    ]; df50 = df50.set_index("FSS")
-    df50 = df50.loc[fsorder,:]
-    df50.loc["Average", :] = df50.mean()
+df75 = datasetResults_dict[datasetname][
+    datasetResults_dict[datasetname]["nThreshold"] == '75'
+][["kNN", "SVM", "Gaussian-NB", "LDA", "DT"]]
+df75.loc["Average"] = df75.mean()
 
-    df75  = df[df["nThreshold"]=="75"][
-        ["kNN", "SVM", "Gaussian-NB", "LDA", "DT", "FSS"]
-    ]; df75 = df75.set_index("FSS")
-    df75 = df75.loc[fsorder,:]
-    df75.loc["Average", :] = df75.mean()
+df100 = datasetResults_dict[datasetname][
+    datasetResults_dict[datasetname]["nThreshold"] == '100'
+][["kNN", "SVM", "Gaussian-NB", "LDA", "DT"]]
+df100.loc["Average"] = df100.mean()
 
-    df100 = df[df["nThreshold"]=="100"][
-        ["kNN", "SVM", "Gaussian-NB", "LDA", "DT", "FSS"]
-    ]; df100 = df100.set_index("FSS")
-    df100 = df100.loc[fsorder,:]
-    df100.loc["Average", :] = df100.mean()
+# print("Top 25"); print(df25.round(decimals=3).to_csv(sep=' '))
+# print("Top 50"); print(df50.round(decimals=3).to_csv(sep=' '))
+# print("Top 75"); print(df75.round(decimals=3).to_csv(sep=' '))
+# print("Top 100"); print(df100.round(decimals=3).to_csv(sep=' '))
 
-    print(df25)
-    print(df25.to_latex(float_format="%.3f", index=False))
-    print(df50)
-    print(df50.to_latex(float_format="%.3f", index=False))
-    print(df75)
-    print(df75.to_latex(float_format="%.3f", index=False))
-    print(df100)
-    print(df100.to_latex(float_format="%.3f", index=False))
-    
-    input("")
+# Read results from NSL-KDD datase
+nslkdd = pd.read_excel(xl_nslkdd, usecols="A:F", nrows=11, index_col=0)
+
+# Computing the average of all datasets
+print("Datasets included:")
+for k in datasets:
+    print(f" - {k}")
+    df = datasetResults_dict[k].reset_index()
+    df = df[["FSS", "kNN", "SVM", "Gaussian-NB", "LDA", "DT"]]
+
+    dfmean = df.groupby("FSS").mean()
+    dfmean = dfmean.loc[fsorder,:]
+
+    overall_df += dfmean
+
+print(" - NSL-KDD")
+
+overall_df = overall_df + nslkdd.loc[fsorder]
+
+nD = len(datasets) + 1
+print(f"Total number of datasets: {nD}")
+overall_mean_df = overall_df / nD
+print(overall_mean_df.round(decimals=3))
+
+from ranktools import get_ranks_inplace
+overall_mean_df_wRanks = overall_mean_df.apply(get_ranks_inplace)
+overall_mean_df_wRanks = overall_mean_df_wRanks + 1
+print(overall_mean_df_wRanks.to_csv(sep=' '))
 
 sys.exit(0)
