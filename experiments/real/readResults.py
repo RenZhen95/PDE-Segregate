@@ -123,11 +123,13 @@ overall_df = overall_df + nslkdd.loc[fsorder]
 nD = len(datasets) + 1
 print(f"Total number of datasets: {nD}")
 overall_mean_df = overall_df / nD
-print(overall_mean_df.round(decimals=3))
 
 from ranktools import get_ranks_inplace
 overall_mean_df_wRanks = overall_mean_df.apply(get_ranks_inplace)
 overall_mean_df_wRanks = overall_mean_df_wRanks + 1
 print(overall_mean_df_wRanks.to_csv(sep=' '))
+
+overall_mean_df.loc["Average"] = overall_mean_df.mean()
+print(overall_mean_df.round(decimals=3).to_csv(sep=' '))
 
 sys.exit(0)
