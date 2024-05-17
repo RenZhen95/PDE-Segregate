@@ -10,6 +10,7 @@ class PDE_Segregate():
             self, integration_method="trapz", delta=500,
             bw_method="scott", n=2, n_jobs=1,
             lower_end=-0.5, upper_end=1.5,
+            averaging_method="mean",
             mode="release"
     ):
         """
@@ -41,6 +42,12 @@ class PDE_Segregate():
         upper_end : float
          - Upper end of the grid to evaluate the KDEs.
 
+        averaging_method : str
+         - Method of averaging the combinations of intersection areas.
+           Available options include:
+           1. "mean" : The mean of all the combinations of intersection areas
+           2. "weighted" : A weighted mean of all the combinations of intersection areas
+
         mode : str ("release", "development")
          - Option implemented during development to return constructed kernels
            PDEs.
@@ -51,6 +58,7 @@ class PDE_Segregate():
         self.n = n
         self.n_jobs = n_jobs
         self.mode = mode
+        self.averaging_method = averaging_method
 
         # Initializing the x-axis grid
         if lower_end > 0.0:
@@ -139,7 +147,7 @@ class PDE_Segregate():
         )
         self.pdes = []
         self.grids = []
-        
+
         delayed_calls = (
             delayed(
                 self.construct_kernel
@@ -156,16 +164,16 @@ class PDE_Segregate():
             for item in res:
                 self.pdes.append(item[0])
                 self.grids.append(item[1])
-            # self.pdes = [item[0] for item in res]
-            # self.grids = [item[1] for item in res]
 
         print(" - Kernels constructed!")
 
         # Compute intersection areas
         _combinations = combinations(self.yLabels, self.n)
+        c1 = []
         cStack = []
         print("Computing intersection areas ...")
         for c in _combinations:
+            c1.append(c)
             delayed_calls_intersectionArea = (
                 delayed(
                     self.compute_intersectionArea
@@ -178,14 +186,35 @@ class PDE_Segregate():
             cStack.append(c_intersection)
 
         cStack = np.array(cStack)
-        self.intersectionAreas = np.mean(cStack, axis=0)
+
+        if self.averaging_method == "mean":
+            self.intersectionAreas = np.mean(cStack, axis=0)
+
+        elif self.averaging_method == "weighted":
+            nSamples_total = self.X.shape[0]
+            nSamples_perClass = defaultdict()
+            for _class in self.y_segregatedGroup.keys():
+                nSamples_perClass[_class] = self.y_segregatedGroup[_class].shape[0]
+
+            _weights = np.zeros(len(c1))
+            for _wi, _c in enumerate(c1):
+                _weight = (
+                    nSamples_perClass[_c[0]] + nSamples_perClass[_c[1]]
+                ) / nSamples_total
+                _weights[_wi] = _weight
+
+            # Normalized such that the sum of all the weights are 1
+            _norm_weights = _weights / _weights.sum()
+
+            intAreas = np.zeros(self.X.shape[1])
+            for _ci in range(len(c1)):
+                intAreas += cStack[_ci,:] * _norm_weights[_ci]
+
+            self.intersectionAreas = intAreas
 
         # Get feature importances as expressed in terms of reciprocal of
         # computed intersection areas
         self.feature_importances_ = 1/self.intersectionAreas
-
-        # Get rankings of features ordered from most important to least
-        self.top_features_ = self.get_topnFeatures(self.X.shape[1])
 
     def compute_intersectionArea(self, feat_idx, _combinations):
         """
