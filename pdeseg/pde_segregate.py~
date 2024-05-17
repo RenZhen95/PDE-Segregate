@@ -10,8 +10,7 @@ class PDE_Segregate():
             self, integration_method="trapz", delta=500,
             bw_method="scott", n=2, n_jobs=1,
             lower_end=-0.5, upper_end=1.5,
-            averaging_method="mean",
-            mode="release"
+            averaging_method="mean", mode="release"
     ):
         """
         Parameters
@@ -188,9 +187,11 @@ class PDE_Segregate():
         cStack = np.array(cStack)
 
         if self.averaging_method == "mean":
+            print(" - averaging_method: 'mean'")
             self.intersectionAreas = np.mean(cStack, axis=0)
 
         elif self.averaging_method == "weighted":
+            print(" - averaging_method: 'weighted'")
             nSamples_total = self.X.shape[0]
             nSamples_perClass = defaultdict()
             for _class in self.y_segregatedGroup.keys():

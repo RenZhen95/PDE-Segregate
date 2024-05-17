@@ -45,7 +45,8 @@ for dataset in datasets_dict.keys():
     tPDE_start = process_time()
     pdeSegregate = PDE_Segregate(
         integration_method="trapz", delta=500, bw_method="scott",
-        n=2, n_jobs=-1, mode="release", lower_end=-1.5, upper_end=2.5
+        n=2, n_jobs=-1, mode="release", lower_end=-1.5, upper_end=2.5,
+        averaging_method="weighted"
     )
     pdeSegregate.fit(X, y)
     tPDE_stop = process_time()

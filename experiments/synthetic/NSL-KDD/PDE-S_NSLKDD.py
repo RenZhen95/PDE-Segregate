@@ -4,14 +4,7 @@ import pandas as pd
 from pathlib import Path
 from time import process_time
 
-sys.path.append(
-    os.path.dirname(
-        os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        )
-    )
-)
-from pde_segregate import PDE_Segregate
+from pdeseg import PDE_Segregate
 
 if len(sys.argv) < 2:
     print("Possible usage: python3.11 PDE-S_NSLKDD.py <folder>")
@@ -66,7 +59,8 @@ rank_df["rank"] = np.arange(0, 16, 1)
 tPDE_start = process_time()
 pdeSegregate = PDE_Segregate(
     integration_method="trapz", delta=500, bw_method="scott",
-    n=2, n_jobs=-1, mode="release", lower_end=-1.5, upper_end=2.5
+    n=2, n_jobs=-1, mode="release", lower_end=-1.5, upper_end=2.5,
+    averaging_method="weighted"
 )
 pdeSegregate.fit(X, y)
 tPDE_stop = process_time()
@@ -78,9 +72,7 @@ elapsed_times.at["PDE-S"] = tPDE
 
 # === === === === === === ===
 # GETTING TOP N FEATURES
-rank_df.loc[:, "PDE-S"] = pdeSegregate.top_features_[
-    :nRetainedFeatures
-]
+rank_df.loc[:, "PDE-S"] = pdeSegregate.get_topnFeatures(nRetainedFeatures)
 
 scores_df.loc[:, "PDE-S"] = pdeSegregate.feature_importances_
 

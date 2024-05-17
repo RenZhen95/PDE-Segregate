@@ -4,13 +4,14 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-if len(sys.argv) < 2:
+if len(sys.argv) < 3:
     print(
-        "Possible usage: python3.11 combine_fss.py <folder>"
+        "Possible usage: python3.11 combine_fss.py <folder> <pdesfolder>"
     )
     sys.exit(1)
 else:        
     folder = Path(sys.argv[1])
+    pdesfolder = Path(sys.argv[2])
 
 # === === === ===
 # Feature Scores (other FS)
@@ -32,7 +33,7 @@ scores_df["LHRlf"] = LHRlf_featurescores
 
 # Reading scores from PDE-S
 pdes_featurescores = pd.read_csv(
-    folder.joinpath(f"PDE-S/PDE-S_scores_df.csv"), index_col=0
+    pdesfolder.joinpath("PDE-S_scores_df.csv"), index_col=0
 )
 scores_df["PDE-S"] = pdes_featurescores["PDE-S"]
 
@@ -97,7 +98,7 @@ ranks_df["mRMR"] = mRMR_rank
 # === === === ===
 # Reading scores from PDE-S
 pdes_ranks = pd.read_csv(
-    folder.joinpath(f"PDE-S/PDE-S_rank.csv"), index_col=0
+    pdesfolder.joinpath("PDE-S_rank.csv"), index_col=0
 )
 ranks_df["PDE-S"] = pdes_ranks["PDE-S"]
 
@@ -117,21 +118,15 @@ mRMR_times = pd.read_csv(
     mRMR_folder.joinpath("tmRMR.csv"), header=None
 )
 pdes_times = pd.read_csv(
-    folder.joinpath("PDE-S/PDE-S_elapsed_times.csv"), index_col=0
+    pdesfolder.joinpath("PDE-S_elapsed_times.csv"), index_col=0
 )
 py_times["IRlf"] = IRlf_times.values[0,0]
 py_times["LHRlf"] = LHRlf_times.values[0,0]
 py_times["mRMR"] = mRMR_times.values[0,0]
 py_times["PDE-S"] = pdes_times.at["PDE-S",'0']
 
-scores_df.to_csv(
-    folder.joinpath("Combined/featurescores.csv")
-)
-ranks_df.to_csv(
-    folder.joinpath("Combined/ranks.csv")
-)
-py_times.to_csv(
-    folder.joinpath("Combined/elapsedtimes.csv")
-)
+scores_df.to_csv("featurescores.csv")
+ranks_df.to_csv("ranks.csv")
+py_times.to_csv("elapsedtimes.csv")
 
 sys.exit(0)

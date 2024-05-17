@@ -96,13 +96,13 @@ df100 = datasetResults_dict[datasetname][
 ][["kNN", "SVM", "Gaussian-NB", "LDA", "DT"]]
 df100.loc["Average"] = df100.mean()
 
-# print("Top 25"); print(df25.round(decimals=3).to_csv(sep=' '))
-# print("Top 50"); print(df50.round(decimals=3).to_csv(sep=' '))
-# print("Top 75"); print(df75.round(decimals=3).to_csv(sep=' '))
-# print("Top 100"); print(df100.round(decimals=3).to_csv(sep=' '))
+print("Top 25"); print(df25.round(decimals=3).to_csv(sep=' '))
+print("Top 50"); print(df50.round(decimals=3).to_csv(sep=' '))
+print("Top 75"); print(df75.round(decimals=3).to_csv(sep=' '))
+print("Top 100"); print(df100.round(decimals=3).to_csv(sep=' '))
 
-# Read results from NSL-KDD datase
-nslkdd = pd.read_excel(xl_nslkdd, usecols="A:F", nrows=11, index_col=0)
+# Read results from NSL-KDD dataset
+nslkdd = pd.read_csv(xl_nslkdd, index_col=0)
 
 # Computing the average of all datasets
 print("Datasets included:")

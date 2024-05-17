@@ -18,24 +18,24 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.metrics import balanced_accuracy_score
 
 if len(sys.argv) < 3:
-    print("Possible usage: python3 traintest.py <datasetsFolder> <folder>")
+    print("Possible usage: python3 traintest.py <datasetsFolder> <combinedfolder>")
     sys.exit(1)
 else:
     datasetsFolder = Path(sys.argv[1])
-    folder = Path(sys.argv[2])
+    combinedfolder = Path(sys.argv[2])
 
 fsorder = [
     "RlfF", "MSurf", "IRlf", "LHRlf",
     "RFGini", "MI", "mRMR", "FT", "PDE-S"
 ]
-feature_ranks = pd.read_csv(folder.joinpath("Combined/ranks.csv"), index_col=0)
+feature_ranks = pd.read_csv(combinedfolder.joinpath("ranks.csv"), index_col=0)
 
-Xtrain = pd.read_csv(datasetsFolder.joinpath("ProcessedCSV/Xtrain20.csv"), index_col=0).values
-ytrain = pd.read_csv(datasetsFolder.joinpath("ProcessedCSV/ytrain20.csv"), index_col=0)
+Xtrain = pd.read_csv(datasetsFolder.joinpath("Xtrain20.csv"), index_col=0).values
+ytrain = pd.read_csv(datasetsFolder.joinpath("ytrain20.csv"), index_col=0)
 ytrain = np.ravel(ytrain)
 
-Xtest  = pd.read_csv(datasetsFolder.joinpath("ProcessedCSV/Xtest.csv"), index_col=0).values
-ytest = pd.read_csv(datasetsFolder.joinpath("ProcessedCSV/ytest.csv"), index_col=0)
+Xtest  = pd.read_csv(datasetsFolder.joinpath("Xtest.csv"), index_col=0).values
+ytest = pd.read_csv(datasetsFolder.joinpath("ytest.csv"), index_col=0)
 ytest = np.ravel(ytest)
 
 results = pd.DataFrame(
