@@ -172,6 +172,9 @@ fss_list = list(groupeddf_relvattop.columns)
 average_successrate = pd.DataFrame(
     data=np.zeros((3, len(fss_list))), index=[2.0, 3.0, 4.0], columns=fss_list
 )
+sd_successrate = pd.DataFrame(
+    data=np.zeros((3, len(fss_list))), index=[2.0, 3.0, 4.0], columns=fss_list
+)
 
 def calculate_success(_x):
     """
@@ -193,16 +196,21 @@ def calculate_success_per_nClass(nClass):
             if relvattop.at[it_, fss]:
                 groupeddf_success.at[it_, fss] = 100.0
 
-    return groupeddf_success.mean()
+    return groupeddf_success.mean(), groupeddf_success.std()
 
-avrsuccess_nClass2 = calculate_success_per_nClass(2.0)
-avrsuccess_nClass3 = calculate_success_per_nClass(3.0)
-avrsuccess_nClass4 = calculate_success_per_nClass(4.0)
+avrsuccess_nClass2, sdsuccess_nClass2 = calculate_success_per_nClass(2.0)
+avrsuccess_nClass3, sdsuccess_nClass3 = calculate_success_per_nClass(3.0)
+avrsuccess_nClass4, sdsuccess_nClass4 = calculate_success_per_nClass(4.0)
 
 average_successrate.loc[2.0] = avrsuccess_nClass2
 average_successrate.loc[3.0] = avrsuccess_nClass3
 average_successrate.loc[4.0] = avrsuccess_nClass4
 
+sd_successrate.loc[2.0] = sdsuccess_nClass2
+sd_successrate.loc[3.0] = sdsuccess_nClass3
+sd_successrate.loc[4.0] = sdsuccess_nClass4
+
 average_successrate.to_csv(f"{nTop}_SDIsuccessrates.csv")
+sd_successrate.to_csv(f"{nTop}_SDIsuccessrates_sd.csv")
 
 sys.exit(0)

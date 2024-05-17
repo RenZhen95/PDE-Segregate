@@ -107,6 +107,9 @@ fss_list = list(groupeddf_relvattop.columns)
 average_successrate = pd.DataFrame(
     data=np.zeros((3, len(fss_list))), index=[30, 50, 70], columns=fss_list
 )
+sd_successrate = pd.DataFrame(
+    data=np.zeros((3, len(fss_list))), index=[30, 50, 70], columns=fss_list
+)
 
 def calculate_success(_x):
     """
@@ -128,19 +131,22 @@ def calculate_success_per_nobs(nobs):
             if relvattop.at[it_, fss]:
                 groupeddf_success.at[it_, fss] = 100.0
 
-    return groupeddf_success.mean()
+    return groupeddf_success.mean(), groupeddf_success.std()
 
-avrsuccess_obs30 = calculate_success_per_nobs(30)
-avrsuccess_obs50 = calculate_success_per_nobs(50)
-avrsuccess_obs70 = calculate_success_per_nobs(70)
+avrsuccess_obs30, sdsuccess_obs30 = calculate_success_per_nobs(30)
+avrsuccess_obs50, sdsuccess_obs50 = calculate_success_per_nobs(50)
+avrsuccess_obs70, sdsuccess_obs70 = calculate_success_per_nobs(70)
 
 average_successrate.loc[30] = avrsuccess_obs30
 average_successrate.loc[50] = avrsuccess_obs50
 average_successrate.loc[70] = avrsuccess_obs70
 
-print(average_successrate)
+sd_successrate.loc[30] = sdsuccess_obs30
+sd_successrate.loc[50] = sdsuccess_obs50
+sd_successrate.loc[70] = sdsuccess_obs70
 
 average_successrate.to_csv(f"{datasetName}_successrates.csv")
+sd_successrate.to_csv(f"{datasetName}_successrates_sd.csv")
 
 sys.exit(0)
 

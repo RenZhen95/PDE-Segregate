@@ -62,10 +62,6 @@ n70_sd = fill_df_sd(full10foldcv_n70_sd)
 
 
 # === === === ===
-# Getting the sd of the success rates across all iterations
-
-
-# === === === ===
 # Getting all averaged balanced accuracies and success rates
 clf_dict = {
     "kNN": "kNN", "SVM": "SVM", "NB": "GNB", "LDA": "LDA", "DT": "DT"
@@ -80,6 +76,13 @@ sucrates = pd.read_csv(
 sucrates_n30 = sucrates.loc[30]
 sucrates_n50 = sucrates.loc[50]
 sucrates_n70 = sucrates.loc[70]
+
+sucrates_sd = pd.read_csv(
+    folder.joinpath(f"Suc/{datasetname}_successrates_sd.csv"), index_col=0
+)
+sucrates_n30_sd = sucrates_sd.loc[30]
+sucrates_n50_sd = sucrates_sd.loc[50]
+sucrates_n70_sd = sucrates_sd.loc[70]
 
 def fill_df(_df, _sucrates):
     table_df = pd.DataFrame(
@@ -104,10 +107,24 @@ n30_df = fill_df(n30, sucrates_n30)
 n50_df = fill_df(n50, sucrates_n50)
 n70_df = fill_df(n70, sucrates_n70)
 
+def puttogether_df_sd(_clfsd, _sucsd):
+    _clfsd["Suc."] = _sucsd
+    _clfsd = _clfsd[["Suc.", "kNN", "SVM", "NB", "LDA", "DT"]]
+    _clfsd.loc["Average"] = _clfsd.mean()
+    return _clfsd.round(decimals=2)
+
+n30_df_sd = puttogether_df_sd(n30_sd, sucrates_n30_sd)
+n50_df_sd = puttogether_df_sd(n50_sd, sucrates_n50_sd)
+n70_df_sd = puttogether_df_sd(n70_sd, sucrates_n70_sd)
+
 final_df = pd.concat([n30_df, n50_df, n70_df])
 print(final_df)
 
-# final_df.to_excel(folder.joinpath(f"{datasetname}_latexTable.xlsx"))
+final_df_sd = pd.concat([n30_df_sd, n50_df_sd, n70_df_sd])
+print(final_df_sd)
+
+final_df.to_excel(f"{datasetname}_latexTable.xlsx")
+final_df_sd.to_excel(f"{datasetname}_sd_latexTable.xlsx")
 
 sys.exit(0)
 
