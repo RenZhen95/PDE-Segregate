@@ -4,8 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.feature_selection import f_classif
 
-sys.path.append(os.path.dirname(os.getcwd()))
-from pde_segregate import PDE_Segregate
+from pdeseg import PDE_Segregate
 
 # Dataset parameters
 nSamples = [5, 100, 3000]
@@ -49,11 +48,12 @@ for i, n in enumerate(nSamples):
     y = X["Class"]
     X.drop(columns=["Class"], inplace=True)
     X = X.values
-    pdeSegregate = PDE_Segregate(X, y)
+    pdeSegregate = PDE_Segregate()
+    pdeSegregate.fit(X, y)
     
     # Overlapping areas
-    print(f"OA from PDE-Segregate: {pdeSegregate.overlappingAreas[0]}")
-    areaIntersection.append(pdeSegregate.overlappingAreas[0])
+    print(f"OA from PDE-Segregate: {pdeSegregate.intersectionAreas[0]}")
+    areaIntersection.append(pdeSegregate.intersectionAreas[0])
     
     # ANOVA F-Test
     f_statistic, p_values = f_classif(X, y)

@@ -4,8 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.feature_selection import f_classif
 
-sys.path.append(os.path.dirname(os.getcwd()))
-from pde_segregate import PDE_Segregate
+from pdeseg import PDE_Segregate
 
 # Dataset parameters
 separation = [1, 3, 5]
@@ -47,8 +46,8 @@ for i, s in enumerate(separation):
     y = X["Class"]
     X.drop(columns=["Class"], inplace=True)
     X = X.values
-    pdeSegregate = PDE_Segregate(X, y, delta=1000, pairwise=False, n_jobs=-1)
-    pdeSegregate.fit()
+    pdeSegregate = PDE_Segregate(delta=1000)
+    pdeSegregate.fit(X, y)
     
     # ANOVA F-Test
     f_statistic, p_values = f_classif(X, y)
@@ -86,17 +85,17 @@ for i, s in enumerate(separation):
     print(f"Manually computed Eta^2  : {etaSquared}")
     
     # Plot overlapping areas
-    normalized_feature_vector = pdeSegregate.plot_overlapAreas(
+    pdeSegregate.plot_overlapAreas(
         0, _ylim=(0.0, 5.25), _title=None,
-        show_samples=False, _ax=axs[i], legend="intersection",
-        return_normVector=True
+        show_samples=False, _ax=axs[i], legend="intersection"
     )
 
     # Get means of normalized feature vectors
-    mean0 = normalized_feature_vector[0.0].mean()
-    mean1 = normalized_feature_vector[1.0].mean()
+    mean0 = pdeSegregate.y_segregatedGroup[0.0][:,0].mean()
+    mean1 = pdeSegregate.y_segregatedGroup[1.0][:,0].mean()
     meanTotal = np.append(
-        normalized_feature_vector[0.0], normalized_feature_vector[1.0]
+        pdeSegregate.y_segregatedGroup[0.0][:,0],
+        pdeSegregate.y_segregatedGroup[1.0][:,0]
     )
     meanTotal = meanTotal.mean()
 

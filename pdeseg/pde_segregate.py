@@ -8,8 +8,8 @@ from joblib import Parallel, delayed
 class PDE_Segregate():
     def __init__(
             self, integration_method="trapz", delta=500,
-            bw_method="scott", n=2, n_jobs=1,
-            lower_end=-0.5, upper_end=1.5,
+            bw_method="scott", k=2, n_jobs=1,
+            lower_end=-1.5, upper_end=2.5,
             averaging_method="mean", mode="release"
     ):
         """
@@ -28,9 +28,9 @@ class PDE_Segregate():
            'scott' and 'silverman', a scalar constant or a callable. For
            more details, see scipy.stats.gaussian_kde documentation.
 
-        n : intpairwise : bool
-         - Compute the mean intersection area between N choose 2 combinations
-           of intersection areas.
+        k : intpairwise
+         - Compute the mean intersection area between (number of classes)
+           choose k combinations of intersection areas.
 
         n_jobs : int
          - Number of processors to use. -1 to use all available processors.
@@ -54,7 +54,7 @@ class PDE_Segregate():
         self.integration_method = integration_method
         self.delta = delta
         self.bw_method = bw_method
-        self.n = n
+        self.k = k
         self.n_jobs = n_jobs
         self.mode = mode
         self.averaging_method = averaging_method
@@ -96,12 +96,12 @@ class PDE_Segregate():
         self.yLabels.sort()
 
         # Check to make sure user does not enter an invalid parameter 'n'
-        if self.n > len(self.yLabels):
+        if self.k > len(self.yLabels):
             raise ValueError(
                 f"Parameter n must be between 2 and number of class ({len(self.yLabels)})!"
             )
 
-        if self.n == 1:
+        if self.k == 1:
             raise ValueError(
                 f"Parameter n must be between 2 and number of class ({len(self.yLabels)})!"
             )
@@ -167,7 +167,7 @@ class PDE_Segregate():
         print(" - Kernels constructed!")
 
         # Compute intersection areas
-        _combinations = combinations(self.yLabels, self.n)
+        _combinations = combinations(self.yLabels, self.k)
         c1 = []
         cStack = []
         print("Computing intersection areas ...")
@@ -370,27 +370,38 @@ class PDE_Segregate():
         )[:n]
 
     def plot_overlapAreas(
-            self, feat_idx, feat_names=None, _ylim=None, _title=None,
-            show_samples=False, savefig=None, _format="svg",
-            legend=False, _ax=None
+            self, feat_idx, feat_names=None, _combinations=None,
+            show_samples=False, legend=False, _ax=None
     ):
         """
         Function to plot intersection areas for a given feature.
 
         Parameters
         ----------
+        feat_idx : int
+         - Index of feature to plot according to input X.
+
+        feat_names : list or None
+         - List of feature names in order of features according to input X.
+           If None, integer indices will be used.
+
+        _combinations : tuple or None
+         - Tuple of which classes to consider when plotting the
+           intersection area. If None, then plots intersection area
+           between all KDEs (k=number of class).
+
+        show_samples : bool
+         - If True, show samples that make up the KDEs as short vertical lines.
+
         legend : bool, 'intersection'
          - If true, legend would include all the class PDEs and computed
            intersection areas. If 'intersection', only includes
            intersection area.
 
-        savefig : str, None
-         - If str, then figure will be saved as file name given.
+        _ax : matplotlib.axes.Axes
+         - Matplotlib's Axes object, if None, one will be created internally.
+
         """
-        OA = self.intersectionAreas[feat_idx]
-
-        yStack = []
-
         if _ax is None:
             fig, _ax = plt.subplots(1,1)
             _ax_passed = False
@@ -398,15 +409,32 @@ class PDE_Segregate():
             _ax_passed = True
 
         linecolors = []
-        for y, p_y in self.pdes[feat_idx].items():
+
+        if _combinations is None:
+            pdes_perFeature = self.pdes[feat_idx]
+        else:
+            pdes_perFeature = defaultdict()
+            for y in _combinations:
+                if not y in self.yLabels:
+                    raise ValueError(
+                        f"The class {y} was not found in the original class array y" +
+                        f"\nTypes of classes: {self.yLabels}"
+                    )
+                else:
+                    pdes_perFeature[y] = self.pdes[feat_idx][y]
+
+        # Initialize yStack
+        yStack = []
+        for y, p_y in pdes_perFeature.items():
             yStack.append(p_y)
 
-            # Plotting the probabilty density estimate per class
+        # First plot all KDEs regardless of user input
+        for y, p_y in self.pdes[feat_idx].items():
             if legend == "intersection":
                 p = _ax.plot(self.grids[feat_idx], p_y, alpha=0.7)
             else:
                 if legend:
-                    p = _ax.plot(self.grids[feat_idx], p_y, alpha=0.7, label=y)
+                    p = _ax.plot(self.grids[feat_idx], p_y, alpha=0.7, label=f"Class {y}")
                 else:
                     p = _ax.plot(self.grids[feat_idx], p_y, alpha=0.7)
 
@@ -425,13 +453,28 @@ class PDE_Segregate():
         # Getting the smallest probabilities of all the estimates at every
         # grid point
         yIntersection = np.amin(yStack, axis=0)
+
+        # Get OA
+        if _combinations is None:
+            OA = self.compute_intersectionArea(feat_idx, self.yLabels)
+        else:
+            OA = self.compute_intersectionArea(feat_idx, _combinations)
+
         if legend == "intersection":
+            legend_label= True
+        elif legend:
+            legend_label= True
+        else:
+            legend_label= False
+
+        if legend_label:
             _label = r"$A_{i} = $"
             _label += str(round(OA, 3))
             fill_poly = _ax.fill_between(
                 self.grids[feat_idx], 0, yIntersection, label=_label,
                 color="lightgray", edgecolor="lavender"
             )
+            _ax.legend()
         else:
             fill_poly = _ax.fill_between(
                 self.grids[feat_idx], 0, yIntersection, color="lightgray", edgecolor="lavender"
@@ -455,19 +498,6 @@ class PDE_Segregate():
             np.arange(
                 self.grids[feat_idx].min()-(xrange*0.05),
                 self.grids[feat_idx].max()+(xrange*0.05),
-                0.2
+                0.5
             )
         )
-        if not _ylim is None:
-            _ax.set_ylim(_ylim)
-
-        if legend:
-            _ax.legend(bbox_to_anchor=(0.4,1), loc='upper left', title=_title, fontsize='x-large')
-
-        # If user DOES NOT pass a matplotlib Axes object from the outside
-        if not _ax_passed:
-            _ax.grid(visible=True, which="major", axis="both")
-
-            if not savefig is None:
-                print(f"Plotting {savefig}.{_format} ... ")
-                plt.savefig(f"{savefig}.{_format}", format=_format)
