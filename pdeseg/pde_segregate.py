@@ -393,10 +393,10 @@ class PDE_Segregate():
         show_samples : bool
          - If True, show samples that make up the KDEs as short vertical lines.
 
-        legend : bool, 'intersection'
+        legend : bool, 'intersection', 'class'
          - If true, legend would include all the class PDEs and computed
            intersection areas. If 'intersection', only includes
-           intersection area.
+           intersection area, and 'class' only includes the classes
 
         _ax : matplotlib.axes.Axes
          - Matplotlib's Axes object, if None, one will be created internally.
@@ -429,14 +429,35 @@ class PDE_Segregate():
             yStack.append(p_y)
 
         # First plot all KDEs regardless of user input
-        for y, p_y in self.pdes[feat_idx].items():
+        if isinstance(legend, str):
             if legend == "intersection":
-                p = _ax.plot(self.grids[feat_idx], p_y, alpha=0.7)
+                class_legendlabels = False
+                area_legendlabel = True
+                show_legend = True
+            elif legend == "class":
+                class_legendlabels = True
+                area_legendlabel = False
+                show_legend = True
             else:
-                if legend:
-                    p = _ax.plot(self.grids[feat_idx], p_y, alpha=0.7, label=f"Class {y}")
-                else:
-                    p = _ax.plot(self.grids[feat_idx], p_y, alpha=0.7)
+                raise ValueError(
+                    "Possible values for 'legend' are 'intersection', " +
+                    "'class' or boolean"
+                )
+        else:
+            if legend:
+                class_legendlabels = True
+                area_legendlabel = True
+                show_legend = True
+            else:
+                class_legendlabels = False
+                area_legendlabel = False
+                show_legend = False
+
+        for y, p_y in self.pdes[feat_idx].items():
+            if class_legendlabels:
+                p = _ax.plot(self.grids[feat_idx], p_y, alpha=0.7, label=f"Class {y}")
+            else:
+                p = _ax.plot(self.grids[feat_idx], p_y, alpha=0.7)
 
             # Get line colors
             linecolors.append(p[0].get_color())
@@ -460,24 +481,30 @@ class PDE_Segregate():
         else:
             OA = self.compute_intersectionArea(feat_idx, _combinations)
 
-        if legend == "intersection":
-            legend_label= True
-        elif legend:
-            legend_label= True
-        else:
-            legend_label= False
+        if show_legend:
+            if area_legendlabel:
+                if _combinations is None:
+                    _label_underscript = 'd'
+                else:
+                    _label_underscript = str(_combinations)
+                    _label_underscript = _label_underscript.replace(' ', '')
 
-        if legend_label:
-            _label = r"$A_{i} = $"
-            _label += str(round(OA, 3))
-            fill_poly = _ax.fill_between(
-                self.grids[feat_idx], 0, yIntersection, label=_label,
-                color="lightgray", edgecolor="lavender"
-            )
+                _label = r"$A_{" + _label_underscript + r"}=$"
+                _label += str(round(OA, 3))
+                fill_poly = _ax.fill_between(
+                    self.grids[feat_idx], 0, yIntersection, label=_label,
+                    color="lightgray", edgecolor="lavender"
+                )
+            else:
+                fill_poly = _ax.fill_between(
+                    self.grids[feat_idx], 0, yIntersection,
+                    color="lightgray", edgecolor="lavender"
+                )
             _ax.legend()
         else:
             fill_poly = _ax.fill_between(
-                self.grids[feat_idx], 0, yIntersection, color="lightgray", edgecolor="lavender"
+                self.grids[feat_idx], 0, yIntersection,
+                color="lightgray", edgecolor="lavender"
             )
 
         fill_poly.set_hatch('xxx')

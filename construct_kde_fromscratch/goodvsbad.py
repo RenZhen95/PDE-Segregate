@@ -1,7 +1,3 @@
-# import gi; gi.require_version("Gtk", "3.0")
-# from gi.repository import Gtk
-# Gtk.init_check()
-
 import numpy as np
 np.random.seed(12)
 
@@ -36,7 +32,10 @@ pde_ownP2 = own_kde(sP2)
 
 # Plots
 import matplotlib.pyplot as plt
-fig2, ax2 = plt.subplots(2, 1, figsize=(5.9, 6.5), sharex=True)
+plotlength = 9.0
+fig2, ax2 = plt.subplots(
+    2, 1, sharex=True, sharey=True, figsize=(plotlength/2, plotlength/1.33)
+)
 
 # Feature 1
 ax2[0].plot(Xgrid, pde_ownN1, label="Negative")
@@ -52,7 +51,7 @@ fill_poly1 = ax2[0].fill_between(
     color="lightgray", edgecolor="lavender"
 )
 fill_poly1.set_hatch('xxx')
-ax2[0].set_yticks([])
+
 # # Samples
 # ax2[0].vlines(
 #     sN1, 0.0, 0.25,
@@ -77,7 +76,7 @@ fill_poly2 = ax2[1].fill_between(
     color="lightgray", edgecolor="lavender"
 )
 fill_poly2.set_hatch('xxx')
-ax2[1].set_yticks([])
+
 # # Samples
 # ax2[1].vlines(
 #     sN2, 0.0, 0.25,
@@ -88,11 +87,22 @@ ax2[1].set_yticks([])
 #     color=np.array([221, 132, 82])/255, linewidth=2.5
 # )
 
+# x-ticks
 plt.xlim((-0.005, 1.005))
-plt.xticks(fontsize='large')
-plt.xlabel(r"$\bar{x}$", fontsize='x-large')
+plt.xlabel(r"$\boldsymbol{F'}$", fontsize='large')
 
-ax2[0].grid(visible=True)
-ax2[1].grid(visible=True)
+# grids
+ax2[0].grid(visible=True, which="major", axis="both")
+ax2[1].grid(visible=True, which="major", axis="both")
+
+# y-label
+ax2[0].set_ylabel(r"$\hat{p}$", rotation=0, y=0.9, fontsize="large", labelpad=9.0)
+ax2[1].set_ylabel(r"$\hat{p}$", rotation=0, y=0.9, fontsize="large", labelpad=9.0)
+
+# titles
+ax2[0].set_title("Feature A", loc="left")
+ax2[1].set_title("Feature B", loc="left")
+
 plt.tight_layout()
+
 plt.show()

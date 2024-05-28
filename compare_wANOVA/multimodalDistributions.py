@@ -4,8 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.feature_selection import f_classif
 
-sys.path.append(os.path.dirname(os.getcwd()))
-from pde_segregate import PDE_Segregate
+from pdeseg import PDE_Segregate
 
 # ---------------------------------------------------------------- #
 # MultiModal
