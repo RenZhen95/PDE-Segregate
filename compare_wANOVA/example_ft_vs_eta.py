@@ -84,7 +84,7 @@ def _run(c0, c1, _ax):
     
     # Plot overlapping areas
     pdeSegregate.plot_overlapAreas(
-        0, show_samples=False, _ax=_ax, legend="intersection",
+        0, _combinations=None, _ax=_ax, legend="intersection",
     )
 
     # Get means of normalized feature vectors
@@ -95,45 +95,38 @@ def _run(c0, c1, _ax):
     )
     meanTotal = meanTotal.mean()
 
-    # _ax.vlines(
-    #     mean0, 0.0, 0.35, label="Mean of Class 0",
-    #     color=np.array([76, 114, 176])/255, linewidth=2.5
-    # )
-    # _ax.vlines(
-    #     mean1, 0.0, 0.35, label="Mean of Class 1",
-    #     color=np.array([221, 132, 82])/255, linewidth=2.5
-    # )
-    # _ax.vlines( 
-    #     meanTotal, 0.0, 0.35, label="Total Mean", color="black",
-    #     linewidth=2.5
-    # )
-    xlabel = r"$\bar{X}$"
-    xlabel += "\n"
-    xlabel += r"Class Separation: $\sigma = $3"
-    _ax.set_xlabel(xlabel, fontsize='x-large')
-
-    title = "# Samples in Each Class: 3000\n"
-    title += f"F-Ratio: {int(np.round(F))} | "
+    title = f"F-Ratio: {int(np.round(F))} | "
     title += r"$\eta^{2}$: "
     title += str(np.round(etaSquared, 3))
     _ax.set_title(
-        title, fontsize='x-large', horizontalalignment="left",
-        loc="left"
+        title, horizontalalignment="left", loc="left"
     )
 
-fig, axs = plt.subplots(1, 3, figsize=(11.5, 5.3), sharey=True)
-# _ylim=(0.0, 5.25)
+plotlength = 9.0
+fig, axs = plt.subplots(
+    2, 1, figsize=(plotlength/2, plotlength/1.33), sharex=True
+)
 _run(class1, class2, axs[0])
 _run(class1mm, class2mm, axs[1])
-_run(class1mm, class2mm, axs[2])
 
-axs[0].set_ylabel(r"$\hat{p}_X$     ", fontsize='large', rotation=0)
+# x-ticks
+axs[0].set_xticks(np.arange(0.0, 1.2, 0.2))
+axs[1].set_xticks(np.arange(0.0, 1.2, 0.2))
 
-axs[0].grid(visible=True, which="major", axis="x")
-axs[1].grid(visible=True, which="major", axis="x")
-axs[2].grid(visible=True, which="major", axis="x")
+# x-label
+axs[0].set_xlabel(r"$\boldsymbol{F'_{A}}$")
+axs[1].set_xlabel(r"$\boldsymbol{F'_{B}}$")
+
+# y-label
+axs[0].set_ylabel(r"$\hat{p}$", fontsize='large', rotation=0, y=0.9, labelpad=9.0)
+axs[1].set_ylabel(r"$\hat{p}$", fontsize='large', rotation=0, y=0.9, labelpad=9.0)
+
+# turn on grid
+axs[0].grid(visible=True, which="major", axis="both")
+axs[1].grid(visible=True, which="major", axis="both")
 
 plt.tight_layout()
+
 plt.show()
 
 sys.exit()

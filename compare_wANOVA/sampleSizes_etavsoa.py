@@ -4,8 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.feature_selection import f_classif
 
-sys.path.append(os.path.dirname(os.getcwd()))
-from pde_segregate import PDE_Segregate
+from pdeseg import PDE_Segregate
 
 # Dataset parameters
 nSamples = [
@@ -52,8 +51,8 @@ for i, n in enumerate(nSamples):
     y = X["Class"]
     X.drop(columns=["Class"], inplace=True)
     X = X.values
-    pdeSegregate = PDE_Segregate(X, y, delta=1000, pairwise=False, n_jobs=-1)
-    pdeSegregate.fit()
+    pdeSegregate = PDE_Segregate(k=2, lower_end=0.0, upper_end=1.0)
+    pdeSegregate.fit(X, y)
     
     # Intersection areas
     print(f"OA from PDE-Segregate: {pdeSegregate.intersectionAreas[0]}")
