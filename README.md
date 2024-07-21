@@ -1,7 +1,40 @@
 <p align="center">
-  <img src="" width="800">
+  <img src="https://github.com/RenZhen95/PDE-Segregate/blob/main/logo.svg" width="200">
 </p>
-**PDE-Seg (PDE-Segregate)** is a univariate filter feature selection method based on the reduction of class overlapping.
+
+**PDE-Seg (PDE-Segregate)** is a univariate filter feature selection method based on a filter-measure that ranks features according to their ability to segregate the probability density estimates (PDE) of the class samples.
+
+## Install
+PDE-Seg can be installed from PyPI:
+<pre>
+pip install pdeseg
+</pre>
+
+## Example
+```python
+from pdeseg import PDE_Segregate
+from sklearn.datasets import make_classification
+
+# Create random classification dataset
+X, y = make_classification(random_state=42, n_samples=300, n_features=20, n_classes=3)
+
+# Initialize PDE-Segregate object
+pdeRanker = PDE_Segregate()
+
+# Carry out feature selection
+pdeRanker.fit(X, y)
+
+# Get top 10 features
+top10Features = pdeRanker.get_topnFeatures(10)
+
+# Visualize the top feature's ability to segregate PDEs
+pdeRanker.plot_overlapAreas(top10Features[0], legend="intersection")
+```
+
+## Sample notebooks
+
+## Citation
+Please cite the paper (2024)
 
 The other feature selection methods that were compared to in our paper is as listed below:
 1. LH-RELIEF: Feature weight estimation for gene selection: a local hyperlinear learning approach
