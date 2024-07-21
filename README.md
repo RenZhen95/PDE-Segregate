@@ -16,7 +16,10 @@ from pdeseg import PDE_Segregate
 from sklearn.datasets import make_classification
 
 # Create random classification dataset
-X, y = make_classification(random_state=42, n_samples=300, n_features=20, n_classes=3)
+X, y = make_classification(
+    n_samples=300, n_features=50, n_classes=3, n_informative=5,
+    shuffle=False
+)
 
 # Initialize PDE-Segregate object
 pdeRanker = PDE_Segregate()
@@ -28,7 +31,20 @@ pdeRanker.fit(X, y)
 top10Features = pdeRanker.get_topnFeatures(10)
 
 # Visualize the top feature's ability to segregate PDEs
-pdeRanker.plot_overlapAreas(top10Features[0], legend="intersection")
+fig, axs = plt.subplots(1, 2, sharey=True)
+
+# Top ranked feature
+pdeRanker.plot_overlapAreas(top10Features[0], legend="intersection", _ax=axs[0])
+axs[0].set_title("Most relevant feature", loc="left")
+
+# Last ranked feature
+axs[1].set_title("Least relevant feature", loc="left")
+pdeRanker.plot_overlapAreas(49, legend="intersection", _ax=axs[1])
+
+axs[0].set_ylabel(r"Probability Density, $\hat{P}$")
+for i in range(2):
+    axs[i].set_xlim(-0.5, 1.5)
+    axs[i].set_xticks(np.arange(-0.5, 2.0, 0.5))
 ```
 
 ## Sample notebooks

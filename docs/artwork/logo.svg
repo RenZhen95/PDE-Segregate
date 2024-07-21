@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 16.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 width="70.915px" height="45.688px" viewBox="0 0 70.915 45.688" enable-background="new 0 0 70.915 45.688" xml:space="preserve">
+<g id="Ebene_2">
+	<rect x="0.04" y="2.245" fill="#EDEDED" width="70.875" height="41.167"/>
+	<path fill="#8BBDE7" stroke="#2A4A9A" stroke-miterlimit="10" d="M66.915,36.86H0.04c7.875-0.625,12.875-4.75,19.125-8.875
+		c3-2,6.125-4.375,9.75-4.75c3.125-0.25,7,0.625,10,1.625C48.29,27.86,56.665,37.36,66.915,36.86z"/>
+	<rect x="0.995" y="3.31" fill="none" width="42.878" height="18.667"/>
+	<text transform="matrix(1 0 0 1 0.9946 19.582)" font-family="'Calibri'" font-size="24">PDE </text>
+	<path opacity="0.7" fill="#FFD132" stroke="#F39200" stroke-miterlimit="10" d="M44.812,36.911H7.04
+		c3.875-0.375,6.5-1.875,9.875-3.625c2.625-1.375,5.125-3.25,8.125-3.625c7-0.875,11,3.875,17,6.5
+		c1.005,0.423,2.167,0.735,3.373,0.944"/>
+	<path opacity="0.7" fill="#95C11F" stroke="#038C38" stroke-miterlimit="10" d="M70.915,36.786h-52.25
+		c1.875-1.125,3.125-2.75,5.375-2.625c2,0.125,3,1.5,4.5,2.375c3.75,2.125,6.125-2.875,7.5-5.625c2.375-4.75,6.5-14.625,13.75-12.75
+		c2.75,0.75,2.875,3.875,3.875,6c1.125,2.375,2.75,4.75,4.375,6.875c3.001,3.779,7.88,4.495,12.352,5.749"/>
+</g>
+<g id="Ebene_3">
+	<rect x="25.581" y="21.916" fill="none" width="37.671" height="19.223"/>
+	<text transform="matrix(1 0 0 1 25.5811 38.1875)" font-family="'Calibri'" font-size="24">Seg</text>
+</g>
+</svg>
