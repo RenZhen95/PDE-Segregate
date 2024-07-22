@@ -1,6 +1,6 @@
 % mRMR by Ding, 2005
 clear; clc
-
+[wdir, ~] = fileparts(mfilename("fullpath"));
 nClass2_idxs = [16; 43; 70; 97];
 nClass3_idxs = [17; 44; 71; 98];
 nClass4_idxs = [18; 45; 72; 99];
@@ -82,7 +82,7 @@ for i=1:4
 end
 
 % Save scores and elapsed times
-cd('/home/liaw/repo/PDE-SegregateDatasets/synthetic/SDI/mRMR/')
+cd(wdir)
 
 writematrix(rank_nClass2, "mRMR_nClass2.csv");
 writematrix(rank_nClass3, "mRMR_nClass3.csv");

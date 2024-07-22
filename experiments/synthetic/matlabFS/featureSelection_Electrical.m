@@ -1,20 +1,24 @@
 % Feature selection of I-RELIEF and LHR
 % The coded is implemented based on Y.J, Sun's IRELIEF.
 clear; clc
+[wdir, ~] = fileparts(mfilename("fullpath"));
 pyenv(Version="/usr/bin/python3.11");
 pickle = py.importlib.import_module('pickle');
-cd('/home/liaw/repo/PDE-SegregateDatasets/synthetic/Electrical/')
 
+% Modify file location accordingly
+cd('../../../../datasets/synthetic/Electrical/')
+
+% Modify dataset name accordingly
 %datasetname = "ANDORdiscrete";
 %datasetname = "ADDERdiscrete";
 
-%datasetname = "ANDORcontinuous";
-datasetname = "ADDERcontinuous";
+datasetname = "ANDORcontinuous";
+%datasetname = "ADDERcontinuous";
 
 handle = py.open(datasetname + "_datasets.pkl", 'rb');
 processedDatasets_dict = pickle.load(handle);
 handle.close();
-cd('/home/liaw/repo/PDE-Segregate/matlabFS/')
+cd(wdir)
 
 % Parameters of IRELIEF taken from Y.J, Sun
 it = 15;
@@ -79,7 +83,7 @@ for i=0:49
     Weights_I_30(:,i+1) = Weight_I_30;
     tEnd_I_30 = cputime - tStart_I_30;
     t_I(1, i+1) = tEnd_I_30;
-    
+
     tStart_I_50 = cputime;
     [Weight_I_50, ~] = IMRelief_1(X50', y50, Para4IRelief);
     Weights_I_50(:,i+1) = Weight_I_50;

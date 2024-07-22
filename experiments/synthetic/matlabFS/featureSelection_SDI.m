@@ -1,7 +1,7 @@
 % Feature selection of I-RELIEF and LHR
 % The coded is implemented based on Y.J, Sun's IRELIEF.
 clear; clc
-
+[wdir, ~] = fileparts(mfilename("fullpath"));
 nClass2_idxs = [16; 43; 70; 97];
 nClass3_idxs = [17; 44; 71; 98];
 nClass4_idxs = [18; 45; 72; 99];
@@ -44,7 +44,7 @@ for i=1:4
     y_nClass4 = readmatrix("y/" + nClass4_idxs(i) + "_y.csv");
     y_nClass4 = y_nClass4 + 1;
 
-    cd('/home/liaw/repo/PDE-Segregate/matlabFS/')
+    cd(wdir)
     % LH-Relief
     tStart_LH_nClass2 = cputime;
     [Weight_LM_nClass2, ~] = LHR(X_nClass2', y_nClass2, Para4IRelief);
@@ -85,7 +85,7 @@ for i=1:4
 end
 
 % Save scores and elapsed times
-cd('/home/liaw/repo/PDE-SegregateDatasets/synthetic/SDI/')
+cd(wdir)
 writematrix(Weights_LM_nClass2, "WeightsLM_nClass2.csv");
 writematrix(Weights_LM_nClass3, "WeightsLM_nClass3.csv");
 writematrix(Weights_LM_nClass4, "WeightsLM_nClass4.csv");

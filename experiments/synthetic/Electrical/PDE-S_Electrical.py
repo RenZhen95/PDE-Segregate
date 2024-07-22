@@ -6,14 +6,7 @@ from pathlib import Path
 from time import process_time
 from collections import defaultdict
 
-sys.path.append(
-    os.path.dirname(
-        os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        )
-    )
-)
-from pde_segregate import PDE_Segregate
+from pdeseg import PDE_Segregate
 
 if len(sys.argv) < 3:
     print(
@@ -67,7 +60,7 @@ for n_obs in synthetic_datasets.keys():
         tPDE_start = process_time()
         pdeSegregate = PDE_Segregate(
             integration_method="trapz", delta=500, bw_method="scott",
-            n=2, n_jobs=-1, mode="release", lower_end=-1.5, upper_end=2.5
+            k=2, n_jobs=-1, mode="release", lower_end=-1.5, upper_end=2.5
         )
         pdeSegregate.fit(X, y)
         tPDE_stop = process_time()
@@ -75,9 +68,7 @@ for n_obs in synthetic_datasets.keys():
 
         # === === === === === === ===
         # GETTING TOP N FEATURES
-        rank_df.loc[count_r:count_r+9, "PDE-S"] = pdeSegregate.top_features_[
-            :nRetainedFeatures
-        ]
+        rank_df.loc[count_r:count_r+9, "PDE-S"] = pdeSegregate.get_topnFeatures(nRetainedFeatures)
         rank_df.loc[count_r:count_r+9, "iteration"] = np.repeat([i], 10)
         rank_df.loc[count_r:count_r+9, "n_obs"] = np.repeat([n_obs], 10)
         count_r += 10

@@ -1,16 +1,20 @@
 % mRMR by Ding, 2005
 clear; clc
+[wdir, ~] = fileparts(mfilename("fullpath"));
 pyenv(Version="/usr/bin/python3.11");
 pickle = py.importlib.import_module('pickle');
-cd('/home/liaw/repo/PDE-SegregateDatasets/synthetic/Electrical/')
 
+% Modify file location accordingly
+cd('../../../../datasets/synthetic/Electrical/')
+
+% Modify dataset name accordingly
 %datasetname = "ANDORdiscrete";
 datasetname = "ADDERdiscrete";
 
 handle = py.open(datasetname + "_datasets.pkl", 'rb');
 processedDatasets_dict = pickle.load(handle);
 handle.close();
-cd('/home/liaw/repo/PDE-Segregate/matlabFS/')
+cd(wdir)
 
 % Parameters of IRELIEF taken from Y.J, Sun
 it = 15;
@@ -73,11 +77,9 @@ for i=0:49
 end
 
 % Save scores and elapsed times
-cd('/home/liaw/repo/PDE-SegregateDatasets/synthetic/Electrical/mRMR/')
+cd(wdir)
 
 writematrix(rank_nObs30, datasetname + "mRMR_nObs30.csv");
 writematrix(rank_nObs50, datasetname + "mRMR_nObs50.csv");
 writematrix(rank_nObs70, datasetname + "mRMR_nObs70.csv");
 writematrix(t_mRMR, datasetname + "tmRMR.csv");
-
-cd('/home/liaw/repo/PDE-Segregate/matlabFS/')
