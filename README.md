@@ -41,8 +41,8 @@ pdeRanker.plot_overlapAreas(top10Features[0], legend="intersection", _ax=axs[0])
 axs[0].set_title("Most relevant feature", loc="left")
 
 # Last ranked feature
-axs[1].set_title("Least relevant feature", loc="left")
 pdeRanker.plot_overlapAreas(49, legend="intersection", _ax=axs[1])
+axs[1].set_title("Least relevant feature", loc="left")
 
 axs[0].set_ylabel(r"Probability Density, $\hat{P}$")
 for i in range(2):
