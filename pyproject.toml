@@ -1,6 +1,6 @@
 [project]
 name = "pdeseg"
-version = "0.1.0"
+version = "0.1.1"
 description = "A feature selection method based on identifying features that best segregate classes via their underlying probablity density estimations"
 readme = "README.md"
 authors = [

@@ -98,12 +98,12 @@ class PDE_Segregate():
         # Check to make sure user does not enter an invalid parameter 'n'
         if self.k > len(self.yLabels):
             raise ValueError(
-                f"Parameter n must be between 2 and number of class ({len(self.yLabels)})!"
+                f"Parameter k must be between 2 and number of class ({len(self.yLabels)})!"
             )
 
         if self.k == 1:
             raise ValueError(
-                f"Parameter n must be between 2 and number of class ({len(self.yLabels)})!"
+                f"Parameter k must be between 2 and number of class ({len(self.yLabels)})!"
             )
 
         # Initializing the default grid
