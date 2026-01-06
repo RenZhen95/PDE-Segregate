@@ -56,7 +56,10 @@ for i in range(2):
 Check out the notebooks provided as tutorials and examples of some specific use cases.
 
 ## Citation
-Please cite the paper (2024)
+For now, cite the followinng abstract
+> J.C. Liaw, F. Geu Flores. A novel univariate feature selection filter-measure based on the reduction of class overlapping. 94th Annual Meeting of the International Association of Applied Mathematics and Mechanics - GAMM, Magdeburg, Deutschland, 18.-22. March 2024, Oral Presentation S25.01-4
+
+Available at <a href="https://jahrestagung.gamm.org/wp-content/uploads/2024/03/BookOfAbstracts-2.pdf#page=365" target="_blank">Book of Abstracts of the 94th Annual Meeting of the International Association of Applied Mathematics and Mechanics, p363</a>
 
 The other feature selection methods that were compared to in our paper is as listed below:
 1. LH-RELIEF: Feature weight estimation for gene selection: a local hyperlinear learning approach
