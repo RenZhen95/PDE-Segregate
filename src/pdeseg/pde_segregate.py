@@ -371,7 +371,7 @@ class PDE_Segregate():
 
     def plot_overlapAreas(
             self, feat_idx, feat_names=None, _combinations=None,
-            show_samples=False, legend=False, _ax=None
+            show_samples=False, legend=False, legend_fIndex=None, _ax=None
     ):
         """
         Function to plot intersection areas for a given feature.
@@ -398,9 +398,11 @@ class PDE_Segregate():
            intersection areas. If 'intersection', only includes
            intersection area, and 'class' only includes the classes
 
+        legend_fIndex : str or Noney
+         - Replaces the ``feat_idx`` parameter with user-defined choice.
+
         _ax : matplotlib.axes.Axes
          - Matplotlib's Axes object, if None, one will be created internally.
-
         """
         if _ax is None:
             fig, _ax = plt.subplots(1,1)
@@ -483,11 +485,17 @@ class PDE_Segregate():
 
         if show_legend:
             if area_legendlabel:
+                if not legend_fIndex is None:
+                    idxlegend = str(legend_fIndex)
+                else:
+                    idxlegend = feat_idx
+
                 if _combinations is None:
-                    _label_underscript = 'd'
+                    _label_underscript = idxlegend
                 else:
                     _label_underscript = str(_combinations)
                     _label_underscript = _label_underscript.replace(' ', '')
+                    _label_underscript = f"{idxlegend}, {_label_underscript}"
 
                 _label = r"$A_{" + _label_underscript + r"}=$"
                 _label += str(round(OA, 3))
