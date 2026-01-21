@@ -488,7 +488,7 @@ class PDE_Segregate():
                 if not legend_fIndex is None:
                     idxlegend = str(legend_fIndex)
                 else:
-                    idxlegend = feat_idx
+                    idxlegend = str(feat_idx)
 
                 if _combinations is None:
                     _label_underscript = idxlegend
